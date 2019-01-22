@@ -89,6 +89,7 @@
                             <Rundeck-Plugin-Rundeck-Compatibility-Version>2.7.1+</Rundeck-Plugin-Rundeck-Compatibility-Version>
                             <Rundeck-Plugin-Target-Host-Compatibility>all</Rundeck-Plugin-Target-Host-Compatibility>
                             <Rundeck-Plugin-Author>Ilya Kogan</Rundeck-Plugin-Author>
+                            <Rundeck-Plugin-File-Version>${project.version}</Rundeck-Plugin-File-Version>
                             <Rundeck-Plugin-Version>1.1</Rundeck-Plugin-Version>
                             <Rundeck-Plugin-Archive>true</Rundeck-Plugin-Archive>
                             <Rundeck-Plugin-ClassNames>
