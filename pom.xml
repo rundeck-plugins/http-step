@@ -81,6 +81,14 @@
                     <archive>
                         <!-- Setup the manifest entries for Rundeck -->
                         <manifestEntries>
+                            <Rundeck-Plugin-Name>Http Step</Rundeck-Plugin-Name>
+                            <Rundeck-Plugin-Description>This plugin provides a way to send HTTP requests as part of a Rundeck workflow step. </Rundeck-Plugin-Description>
+                            <Rundeck-Plugin-Source-Link>https://github.com/rundeck-plugins/http-step</Rundeck-Plugin-Source-Link>
+                            <Rundeck-Plugin-License>Custom</Rundeck-Plugin-License>
+                            <Rundeck-Plugin-Tags>java,workflow step</Rundeck-Plugin-Tags>
+                            <Rundeck-Plugin-Rundeck-Compatibility-Version>2.7.1+</Rundeck-Plugin-Rundeck-Compatibility-Version>
+                            <Rundeck-Plugin-Target-Host-Compatibility>all</Rundeck-Plugin-Target-Host-Compatibility>
+                            <Rundeck-Plugin-Author>Ilya Kogan</Rundeck-Plugin-Author>
                             <Rundeck-Plugin-Version>1.1</Rundeck-Plugin-Version>
                             <Rundeck-Plugin-Archive>true</Rundeck-Plugin-Archive>
                             <Rundeck-Plugin-ClassNames>
