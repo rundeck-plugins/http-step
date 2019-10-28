@@ -64,18 +64,23 @@ public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable {
         String headers = configuration.containsKey("headers") ? configuration.get("headers").toString() : null;
         String body = configuration.containsKey("body") ? configuration.get("body").toString() : null;
 
+        log.log(5, "remoteUrl: " + remoteUrl);
+        log.log(5, "method: " + method);
+        log.log(5, "headers: " + headers);
+        log.log(5, "timeout: " + timeout);
+
         if(remoteUrl == null || method == null) {
             throw new NodeStepException("Remote URL and Method are required.", StepFailureReason.ConfigurationFailure, entry.getNodename());
         }
 
         //Use options in remote URL
         if (null != remoteUrl && remoteUrl.contains("${")) {
-            remoteUrl = DataContextUtils.replaceDataReferences(remoteUrl, context.getDataContext());
+            remoteUrl = DataContextUtils.replaceDataReferencesInString(remoteUrl, context.getDataContextObject());
         }
 
         //Use options in body
         if (null != body && body.contains("${")) {
-            body = DataContextUtils.replaceDataReferences(body, context.getDataContext());
+            body = DataContextUtils.replaceDataReferencesInString(body, context.getDataContextObject());
         }
 
         HttpBuilder builder = new HttpBuilder();
@@ -98,7 +103,7 @@ public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable {
         try {
             authHeader = builder.getAuthHeader(context, configuration);
         } catch (StepException e) {
-            throw new NodeStepException("Remote URL and Method are required.", e.getFailureReason(), entry.getNodename());
+            throw new NodeStepException(e.getMessage(), e.getFailureReason(), entry.getNodename());
         }
 
         if(authHeader != null) {
@@ -125,7 +130,7 @@ public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable {
         try {
             builder.doRequest(configuration, request.build(), 1);
         } catch (StepException e) {
-            throw new NodeStepException("Remote URL and Method are required.", e.getFailureReason(), entry.getNodename());
+            throw new NodeStepException(e.getMessage(), e.getFailureReason(), entry.getNodename());
         }
 
     }
