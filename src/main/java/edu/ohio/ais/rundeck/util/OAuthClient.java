@@ -77,7 +77,7 @@ public class OAuthClient {
         try {
             JsonNode data = jsonParser.readTree(EntityUtils.toString(response.getEntity()));
 
-            if(!data.isArray()) {
+            if(data!=null && !data.isArray()) {
                 if (data.has("error_description")) {
                     error += ": " + data.get("error_description").asText();
                 } else if (data.has("error")) {

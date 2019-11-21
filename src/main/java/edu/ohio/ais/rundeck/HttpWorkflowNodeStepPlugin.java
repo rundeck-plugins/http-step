@@ -1,33 +1,31 @@
 package edu.ohio.ais.rundeck;
 
+import com.dtolabs.rundeck.core.common.INodeEntry;
 import com.dtolabs.rundeck.core.dispatcher.DataContextUtils;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepException;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepFailureReason;
+import com.dtolabs.rundeck.core.execution.workflow.steps.node.NodeStepException;
 import com.dtolabs.rundeck.core.plugins.Plugin;
 import com.dtolabs.rundeck.core.plugins.configuration.Describable;
 import com.dtolabs.rundeck.core.plugins.configuration.Description;
 import com.dtolabs.rundeck.plugins.PluginLogger;
 import com.dtolabs.rundeck.plugins.ServiceNameConstants;
+import com.dtolabs.rundeck.plugins.step.NodeStepPlugin;
 import com.dtolabs.rundeck.plugins.step.PluginStepContext;
-import com.dtolabs.rundeck.plugins.step.StepPlugin;
 import edu.ohio.ais.rundeck.util.OAuthClient;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.entity.ByteArrayEntity;
 
-import java.io.*;
+import java.io.UnsupportedEncodingException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-
-/**
- * Main implementation of the plugin. This will handle fetching
- * tokens when they're expired and sending the appropriate request.
- */
-@Plugin(name = HttpWorkflowStepPlugin.SERVICE_PROVIDER_NAME, service = ServiceNameConstants.WorkflowStep)
-public class HttpWorkflowStepPlugin implements StepPlugin, Describable {
+@Plugin(name = HttpWorkflowNodeStepPlugin.SERVICE_PROVIDER_NAME, service = ServiceNameConstants.WorkflowNodeStep)
+public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable {
+    public static final String SERVICE_PROVIDER_NAME = "edu.ohio.ais.rundeck.HttpWorkflowNodeStepPlugin";
 
     /**
      * Maximum number of attempts with which to try the request.
@@ -40,8 +38,6 @@ public class HttpWorkflowStepPlugin implements StepPlugin, Describable {
      */
     public static final Integer DEFAULT_TIMEOUT = 30*1000;
 
-    public static final String SERVICE_PROVIDER_NAME = "edu.ohio.ais.rundeck.HttpWorkflowStepPlugin";
-
 
     /**
      * Synchronized map of all existing OAuth clients. This is indexed by
@@ -50,43 +46,41 @@ public class HttpWorkflowStepPlugin implements StepPlugin, Describable {
     final Map<String, OAuthClient> oauthClients = Collections.synchronizedMap(new HashMap<String, OAuthClient>());
 
 
-    /**
-     * Setup our plugin description, including all of the various configurable
-     * options.
-     *
-     * @see <a href="http://rundeck.org/docs/developer/plugin-development.html#plugin-descriptions">Plugin Descriptions</a>
-     *
-     * @return The plugin description
-     */
     @Override
     public Description getDescription() {
-        return new HttpDescription(SERVICE_PROVIDER_NAME, "HTTP Request Step", "Performs an HTTP request with or without authentication").getDescription();
+        return new HttpDescription(SERVICE_PROVIDER_NAME, "HTTP Request Node Step", "Performs an HTTP request with or without authentication (per node)").getDescription();
     }
 
 
     @Override
-    public void executeStep(PluginStepContext pluginStepContext, Map<String, Object> options) throws StepException {
-        PluginLogger log = pluginStepContext.getLogger();
+    public void executeNodeStep(PluginStepContext context, Map<String, Object> configuration, INodeEntry entry) throws NodeStepException {
+        PluginLogger log = context.getLogger();
 
         // Parse out the options
-        String remoteUrl = options.containsKey("remoteUrl") ? options.get("remoteUrl").toString() : null;
-        String method = options.containsKey("method") ? options.get("method").toString() : null;
-        Integer timeout = options.containsKey("timeout") ? Integer.parseInt(options.get("timeout").toString()) : DEFAULT_TIMEOUT;
-        String headers = options.containsKey("headers") ? options.get("headers").toString() : null;
-        String body = options.containsKey("body") ? options.get("body").toString() : null;
+        String remoteUrl = configuration.containsKey("remoteUrl") ? configuration.get("remoteUrl").toString() : null;
+        String method = configuration.containsKey("method") ? configuration.get("method").toString() : null;
+
+        Integer timeout = configuration.containsKey("timeout") ? Integer.parseInt(configuration.get("timeout").toString()) : DEFAULT_TIMEOUT;
+        String headers = configuration.containsKey("headers") ? configuration.get("headers").toString() : null;
+        String body = configuration.containsKey("body") ? configuration.get("body").toString() : null;
+
+        log.log(5, "remoteUrl: " + remoteUrl);
+        log.log(5, "method: " + method);
+        log.log(5, "headers: " + headers);
+        log.log(5, "timeout: " + timeout);
 
         if(remoteUrl == null || method == null) {
-            throw new StepException("Remote URL and Method are required.", StepFailureReason.ConfigurationFailure);
+            throw new NodeStepException("Remote URL and Method are required.", StepFailureReason.ConfigurationFailure, entry.getNodename());
         }
 
         //Use options in remote URL
         if (null != remoteUrl && remoteUrl.contains("${")) {
-            remoteUrl = DataContextUtils.replaceDataReferences(remoteUrl, pluginStepContext.getDataContext());
+            remoteUrl = DataContextUtils.replaceDataReferencesInString(remoteUrl, context.getDataContextObject());
         }
 
         //Use options in body
         if (null != body && body.contains("${")) {
-            body = DataContextUtils.replaceDataReferences(body, pluginStepContext.getDataContext());
+            body = DataContextUtils.replaceDataReferencesInString(body, context.getDataContextObject());
         }
 
         HttpBuilder builder = new HttpBuilder();
@@ -105,7 +99,12 @@ public class HttpWorkflowStepPlugin implements StepPlugin, Describable {
 
         log.log(5,"Creating HTTP " + request.getMethod() + " request to " + request.getUri());
 
-        String authHeader = builder.getAuthHeader(pluginStepContext, options);
+        String authHeader = null;
+        try {
+            authHeader = builder.getAuthHeader(context, configuration);
+        } catch (StepException e) {
+            throw new NodeStepException(e.getMessage(), e.getFailureReason(), entry.getNodename());
+        }
 
         if(authHeader != null) {
             log.log(5,"Authentication header set to " + authHeader);
@@ -128,7 +127,11 @@ public class HttpWorkflowStepPlugin implements StepPlugin, Describable {
             request.setEntity(entity);
         }
 
-        builder.doRequest(options, request.build(), 1);
-    }
+        try {
+            builder.doRequest(configuration, request.build(), 1);
+        } catch (StepException e) {
+            throw new NodeStepException(e.getMessage(), e.getFailureReason(), entry.getNodename());
+        }
 
+    }
 }

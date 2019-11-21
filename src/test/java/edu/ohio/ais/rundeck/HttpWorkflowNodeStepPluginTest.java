@@ -1,8 +1,8 @@
 package edu.ohio.ais.rundeck;
 
-import com.dtolabs.rundeck.core.execution.workflow.steps.PluginStepContextImpl;
-import com.dtolabs.rundeck.core.execution.workflow.steps.StepException;
+import com.dtolabs.rundeck.core.common.INodeEntry;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepFailureReason;
+import com.dtolabs.rundeck.core.execution.workflow.steps.node.NodeStepException;
 import com.dtolabs.rundeck.core.plugins.configuration.Description;
 import com.dtolabs.rundeck.plugins.PluginLogger;
 import com.dtolabs.rundeck.plugins.step.PluginStepContext;
@@ -20,7 +20,7 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-public class HttpWorkflowStepPluginTest {
+public class HttpWorkflowNodeStepPluginTest {
     protected static final String REMOTE_URL = "/trigger";
     protected static final String BOGUS_URL = "/bogus";
     protected static final String REMOTE_BASIC_URL = "/trigger-basic";
@@ -36,13 +36,14 @@ public class HttpWorkflowStepPluginTest {
     protected static final int REQUEST_TIMEOUT = 2*1000;
     protected static final int SLOW_TIMEOUT = 3*1000;
 
-    protected HttpWorkflowStepPlugin plugin;
+    protected HttpWorkflowNodeStepPlugin plugin;
     protected OAuthClientTest oAuthClientTest = new OAuthClientTest();
 
     protected Map<String, Object> configuration;
     protected Map<String, Map<String, String>> dataContext;
     protected PluginStepContext pluginContext;
     protected PluginLogger pluginLogger;
+    protected INodeEntry node;
 
     /**
      * Setup options for simple execution for the given method.
@@ -94,7 +95,7 @@ public class HttpWorkflowStepPluginTest {
 
     @Before
     public void setUp() {
-        plugin = new HttpWorkflowStepPlugin();
+        plugin = new HttpWorkflowNodeStepPlugin();
         oAuthClientTest.setUp(); // We need to setup the OAuth endpoints too.
 
         // Test all endpoints by simply iterating.
@@ -150,7 +151,7 @@ public class HttpWorkflowStepPluginTest {
         WireMock.stubFor(WireMock.request("GET", WireMock.urlEqualTo(REMOTE_SLOW_URL))
                 .willReturn(WireMock.aResponse().withFixedDelay(SLOW_TIMEOUT).withStatus(200)));
 
-
+        node = Mockito.mock(INodeEntry.class);
         pluginContext = Mockito.mock(PluginStepContext.class);
         pluginLogger = Mockito.mock(PluginLogger.class);
         Mockito.when(pluginContext.getLogger()).thenReturn(pluginLogger);
@@ -164,7 +165,7 @@ public class HttpWorkflowStepPluginTest {
     public void canGetPluginDescription() {
         Description description = this.plugin.getDescription();
 
-        assertEquals(description.getName(), HttpWorkflowStepPlugin.SERVICE_PROVIDER_NAME);
+        assertEquals(description.getName(), HttpWorkflowNodeStepPlugin.SERVICE_PROVIDER_NAME);
     }
 
     @Test()
@@ -172,9 +173,9 @@ public class HttpWorkflowStepPluginTest {
         Map<String, Object> options = new HashMap<>();
 
         try {
-            this.plugin.executeStep(pluginContext, options);
+            this.plugin.executeNodeStep(pluginContext, options, node );
             fail("Expected configuration exception.");
-        } catch (StepException se) {
+        } catch (NodeStepException se) {
             assertEquals(se.getFailureReason(), StepFailureReason.ConfigurationFailure);
         }
 
@@ -183,91 +184,91 @@ public class HttpWorkflowStepPluginTest {
         options.put("authentication", HttpBuilder.AUTH_BASIC);
 
         try {
-            this.plugin.executeStep(pluginContext, options);
+            this.plugin.executeNodeStep(pluginContext, options, node );
             fail("Expected configuration exception.");
-        } catch (StepException se) {
+        } catch (NodeStepException se) {
             assertEquals(se.getFailureReason(), StepFailureReason.ConfigurationFailure);
         }
 
         options.put("authentication", HttpBuilder.AUTH_OAUTH2);
 
         try {
-            this.plugin.executeStep(pluginContext, options);
+            this.plugin.executeNodeStep(pluginContext, options, node );
             fail("Expected configuration exception.");
-        } catch (StepException se) {
+        } catch (NodeStepException se) {
             assertEquals(se.getFailureReason(), StepFailureReason.ConfigurationFailure);
         }
     }
 
     @Test()
-    public void canCallSimpleEndpoint() throws StepException {
+    public void canCallSimpleEndpoint() throws NodeStepException {
         for(String method : HttpBuilder.HTTP_METHODS) {
-            this.plugin.executeStep(pluginContext, this.getExecutionOptions(method));
+            this.plugin.executeNodeStep(pluginContext, this.getExecutionOptions(method), node );
         }
     }
 
     @Test()
-    public void canSetCustomTimeout() throws StepException {
+    public void canSetCustomTimeout() throws NodeStepException {
         Map<String, Object> options = new HashMap<>();
 
         options.put("remoteUrl", OAuthClientTest.BASE_URI + REMOTE_URL);
         options.put("method", "GET");
         options.put("timeout", REQUEST_TIMEOUT);
 
-        this.plugin.executeStep(pluginContext, options);
+        this.plugin.executeNodeStep(pluginContext, options, node );
 
         try {
             options.put("remoteUrl", OAuthClientTest.BASE_URI + REMOTE_SLOW_URL);
-            this.plugin.executeStep(pluginContext, options);
-            fail("Expected exception " + StepException.class.getCanonicalName() + " not thrown.");
-        } catch(StepException se) {}
+            this.plugin.executeNodeStep(pluginContext, options, node );
+            fail("Expected exception " + NodeStepException.class.getCanonicalName() + " not thrown.");
+        } catch(NodeStepException se) {}
 
         options.put("timeout", SLOW_TIMEOUT + 1000);
-        this.plugin.executeStep(pluginContext, options);
+        this.plugin.executeNodeStep(pluginContext, options, node );
     }
 
     @Test()
-    public void canCallBasicEndpoint() throws StepException {
+    public void canCallBasicEndpoint() throws NodeStepException {
         for(String method : HttpBuilder.HTTP_METHODS) {
             Map<String, Object> options = this.getBasicOptions(method);
             options.put("remoteUrl", OAuthClientTest.BASE_URI + REMOTE_BASIC_URL);
 
-            this.plugin.executeStep(pluginContext, options);
+            this.plugin.executeNodeStep(pluginContext, options, node );
         }
     }
 
-    @Test(expected = StepException.class)
-    public void canHandle500Error() throws StepException {
+    @Test(expected = NodeStepException.class)
+    public void canHandle500Error() throws NodeStepException {
         Map<String, Object> options = new HashMap<>();
 
         options.put("remoteUrl", OAuthClientTest.BASE_URI + ERROR_URL_500);
         options.put("method", "GET");
 
-        this.plugin.executeStep(pluginContext, options);
+        this.plugin.executeNodeStep(pluginContext, options, node );
     }
 
-    @Test(expected = StepException.class)
-    public void canHandleBadUrl() throws StepException {
+    @Test(expected = NodeStepException.class)
+    public void canHandleBadUrl() throws NodeStepException {
         Map<String, Object> options = new HashMap<>();
 
         options.put("remoteUrl", OAuthClientTest.BASE_URI + BOGUS_URL);
         options.put("method", "GET");
 
-        this.plugin.executeStep(pluginContext, options);
+        this.plugin.executeNodeStep(pluginContext, options, node );
     }
 
-    @Test(expected = StepException.class)
-    public void canHandleBadHost() throws StepException {
+    @Test(expected = NodeStepException.class)
+    public void canHandleBadHost() throws NodeStepException {
         Map<String, Object> options = new HashMap<>();
 
         options.put("remoteUrl", "http://neverGoingToBe.aProperUrl/bogus");
         options.put("method", "GET");
 
-        this.plugin.executeStep(pluginContext, options);
+        this.plugin.executeNodeStep(pluginContext, options, node );
     }
 
-    @Test(expected = StepException.class)
-    public void canHandleBASICWrongAuthType() throws StepException {
+    @Test(expected = NodeStepException.class)
+    public void canHandleBASICWrongAuthType() throws NodeStepException {
         Map<String, Object> options = new HashMap<>();
 
         options.put("remoteUrl", OAuthClientTest.BASE_URI + ERROR_URL_401);
@@ -276,58 +277,58 @@ public class HttpWorkflowStepPluginTest {
         options.put("password", OAuthClientTest.CLIENT_SECRET);
         options.put("authentication", HttpBuilder.AUTH_BASIC);
 
-        this.plugin.executeStep(pluginContext, options);
+        this.plugin.executeNodeStep(pluginContext, options, node );
     }
 
-    @Test(expected = StepException.class)
-    public void canHandleAuthenticationRequired() throws StepException {
+    @Test(expected = NodeStepException.class)
+    public void canHandleAuthenticationRequired() throws NodeStepException {
         Map<String, Object> options = new HashMap<>();
 
         options.put("remoteUrl", OAuthClientTest.BASE_URI + ERROR_URL_401);
         options.put("method", "GET");
 
-        this.plugin.executeStep(pluginContext, options);
+        this.plugin.executeNodeStep(pluginContext, options, node );
     }
 
     @Test()
-    public void canCallOAuthEndpoint() throws StepException {
+    public void canCallOAuthEndpoint() throws NodeStepException {
         for(String method : HttpBuilder.HTTP_METHODS) {
-            this.plugin.executeStep(pluginContext, this.getOAuthOptions(method));
+            this.plugin.executeNodeStep(pluginContext, this.getOAuthOptions(method), node );
         }
     }
 
     @Test()
-    public void canCallOAuthEndpointWithExpiredToken() throws StepException {
+    public void canCallOAuthEndpointWithExpiredToken() throws NodeStepException {
         this.plugin.oauthClients.put(OAUTH_CLIENT_MAP_KEY, this.oAuthClientTest.setupClient(OAuthClientTest.ACCESS_TOKEN_EXPIRED));
 
         for(String method : HttpBuilder.HTTP_METHODS) {
             Map<String, Object> options = this.getOAuthOptions(method);
             options.put("remoteUrl", OAuthClientTest.BASE_URI + REMOTE_OAUTH_EXPIRED_URL);
 
-            this.plugin.executeStep(pluginContext, options);
+            this.plugin.executeNodeStep(pluginContext, options, node );
         }
     }
 
-    @Test(expected = StepException.class)
-    public void cannotCallOAuthEndpointWithCredentials() throws StepException {
+    @Test(expected = NodeStepException.class)
+    public void cannotCallOAuthEndpointWithCredentials() throws NodeStepException {
         Map<String, Object> options = this.getOAuthOptions("GET");
         options.put("username", OAuthClientTest.CLIENT_INVALID);
         options.put("password", OAuthClientTest.CLIENT_SECRET);
 
-        this.plugin.executeStep(pluginContext, options);
+        this.plugin.executeNodeStep(pluginContext, options, node );
     }
 
-    @Test(expected = StepException.class)
-    public void canHandle500ErrorWithOAuth() throws StepException {
+    @Test(expected = NodeStepException.class)
+    public void canHandle500ErrorWithOAuth() throws NodeStepException {
         Map<String, Object> options = getOAuthOptions("GET");
 
         options.put("remoteUrl", OAuthClientTest.BASE_URI + ERROR_URL_500);
 
-        this.plugin.executeStep(pluginContext, options);
+        this.plugin.executeNodeStep(pluginContext, options, node );
     }
 
     @Test
-    public void canPrintNoContent() throws StepException {
+    public void canPrintNoContent() throws NodeStepException {
         Map<String, Object> options = new HashMap<>();
 
         options.put("remoteUrl", OAuthClientTest.BASE_URI + NO_CONTENT_URL);
@@ -335,6 +336,6 @@ public class HttpWorkflowStepPluginTest {
         options.put("printResponse",true);
         options.put("printResponseToFile",false);
 
-        this.plugin.executeStep(pluginContext, options);
+        this.plugin.executeNodeStep(pluginContext, options, node );
     }
 }
