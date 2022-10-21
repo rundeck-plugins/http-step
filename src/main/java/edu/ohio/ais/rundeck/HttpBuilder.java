@@ -127,6 +127,12 @@ public class HttpBuilder {
         try {
             response = this.getHttpClient(options).execute(request);
 
+            if(options.containsKey("printResponseCode") && Boolean.parseBoolean(options.get("printResponseCode").toString())) {
+
+                String responseCode = Integer.toString(response.getStatusLine().getStatusCode());
+                log.log(2, responseCode);
+            }
+
             //print the response content
             if(options.containsKey("printResponse") && Boolean.parseBoolean(options.get("printResponse").toString()) ||
                     options.containsKey("printResponseToFile") && Boolean.parseBoolean(options.get("printResponseToFile").toString())) {
