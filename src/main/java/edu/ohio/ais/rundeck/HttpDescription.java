@@ -161,7 +161,7 @@ public class HttpDescription  implements Describable {
                 .property(PropertyBuilder.builder()
                         .booleanType("printResponseCode")
                         .title("Print Response Code?")
-                        .description("Set if the response code should be printed.")
+                        .description("Select to print the HTTP response code and status.")
                         .defaultValue("false")
                         .renderingOption(StringRenderingConstants.GROUP_NAME,"Print")
                         .build())
