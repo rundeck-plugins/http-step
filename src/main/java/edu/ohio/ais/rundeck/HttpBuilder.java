@@ -129,8 +129,8 @@ public class HttpBuilder {
 
             if(options.containsKey("printResponseCode") && Boolean.parseBoolean(options.get("printResponseCode").toString())) {
 
-                String responseCode = Integer.toString(response.getStatusLine().getStatusCode());
-                log.log(2, responseCode);
+                String responseCode = response.getStatusLine().toString();
+                log.log(2, "Response Code: " + responseCode);
             }
 
             //print the response content
