@@ -1,6 +1,8 @@
 package edu.ohio.ais.rundeck;
 
 import com.dtolabs.rundeck.core.common.INodeEntry;
+import com.dtolabs.rundeck.core.execution.ExecutionContext;
+import com.dtolabs.rundeck.core.execution.ExecutionLogger;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepFailureReason;
 import com.dtolabs.rundeck.core.execution.workflow.steps.node.NodeStepException;
 import com.dtolabs.rundeck.core.plugins.configuration.Description;
@@ -17,8 +19,8 @@ import org.mockito.Mockito;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.when;
 
 public class HttpWorkflowNodeStepPluginTest {
     protected static final String REMOTE_URL = "/trigger";
@@ -154,10 +156,10 @@ public class HttpWorkflowNodeStepPluginTest {
         node = Mockito.mock(INodeEntry.class);
         pluginContext = Mockito.mock(PluginStepContext.class);
         pluginLogger = Mockito.mock(PluginLogger.class);
-        Mockito.when(pluginContext.getLogger()).thenReturn(pluginLogger);
+        when(pluginContext.getLogger()).thenReturn(pluginLogger);
 
         dataContext =new HashMap<>();
-        Mockito.when(pluginContext.getDataContext()).thenReturn(dataContext);
+        when(pluginContext.getDataContext()).thenReturn(dataContext);
 
     }
 
@@ -182,6 +184,7 @@ public class HttpWorkflowNodeStepPluginTest {
         options.put("remoteUrl", REMOTE_URL);
         options.put("method", "GET");
         options.put("authentication", HttpBuilder.AUTH_BASIC);
+        options.put("printResponseCode", "true");
 
         try {
             this.plugin.executeNodeStep(pluginContext, options, node );
@@ -232,6 +235,7 @@ public class HttpWorkflowNodeStepPluginTest {
         for(String method : HttpBuilder.HTTP_METHODS) {
             Map<String, Object> options = this.getBasicOptions(method);
             options.put("remoteUrl", OAuthClientTest.BASE_URI + REMOTE_BASIC_URL);
+            options.put("printResponseCode", "true");
 
             this.plugin.executeNodeStep(pluginContext, options, node );
         }
@@ -242,6 +246,7 @@ public class HttpWorkflowNodeStepPluginTest {
         Map<String, Object> options = new HashMap<>();
 
         options.put("remoteUrl", OAuthClientTest.BASE_URI + ERROR_URL_500);
+        options.put("printResponseCode", "true");
         options.put("method", "GET");
 
         this.plugin.executeNodeStep(pluginContext, options, node );

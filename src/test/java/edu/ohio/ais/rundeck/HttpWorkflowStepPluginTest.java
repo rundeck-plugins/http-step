@@ -181,6 +181,7 @@ public class HttpWorkflowStepPluginTest {
         options.put("remoteUrl", REMOTE_URL);
         options.put("method", "GET");
         options.put("authentication", HttpBuilder.AUTH_BASIC);
+        options.put("printResponseCode", "true");
 
         try {
             this.plugin.executeStep(pluginContext, options);
@@ -231,6 +232,7 @@ public class HttpWorkflowStepPluginTest {
         for(String method : HttpBuilder.HTTP_METHODS) {
             Map<String, Object> options = this.getBasicOptions(method);
             options.put("remoteUrl", OAuthClientTest.BASE_URI + REMOTE_BASIC_URL);
+            options.put("printResponseCode", "true");
 
             this.plugin.executeStep(pluginContext, options);
         }
@@ -242,6 +244,7 @@ public class HttpWorkflowStepPluginTest {
 
         options.put("remoteUrl", OAuthClientTest.BASE_URI + ERROR_URL_500);
         options.put("method", "GET");
+        options.put("printResponseCode", "true");
 
         this.plugin.executeStep(pluginContext, options);
     }
