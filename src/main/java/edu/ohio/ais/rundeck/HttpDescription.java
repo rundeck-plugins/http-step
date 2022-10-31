@@ -158,6 +158,13 @@ public class HttpDescription  implements Describable {
                         .renderingOption(StringRenderingConstants.GROUP_NAME,"Proxy Settings")
                         .required(false)
                         .build())
+                .property(PropertyBuilder.builder()
+                        .booleanType("printResponseCode")
+                        .title("Print Response Code?")
+                        .description("Select to print the HTTP response code and status.")
+                        .defaultValue("false")
+                        .renderingOption(StringRenderingConstants.GROUP_NAME,"Print")
+                        .build())
                 .build();
     }
 }
