@@ -92,7 +92,3 @@ jar {
     dependsOn(copyToLib)
 
 }
-
-wrapper {
-    gradleVersion = '4.4.1'
-}
