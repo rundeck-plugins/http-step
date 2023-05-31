@@ -119,7 +119,7 @@ public class HttpBuilder {
      * @param attempts The attempt number
      * @throws StepException Thrown when any error occurs
      */
-    protected void doRequest(Map<String, Object> options, HttpUriRequest request, Integer attempts) throws StepException {
+    public void doRequest(Map<String, Object> options, HttpUriRequest request, Integer attempts) throws StepException {
         if(attempts > this.maxAttempts) {
             throw new StepException("Unable to complete request after maximum number of attempts.", StepFailureReason.IOFailure);
         }
