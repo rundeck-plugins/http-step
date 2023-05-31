@@ -13,6 +13,22 @@ executors:
       JVM_OPTS: -Xmx3200m
       TERM: dumb
 
+commands:
+  collect-gradle-tests:
+    description: Collect JUNIT test reports from entire project
+    steps:
+      - run:
+          name: Save test results
+          command: |
+            mkdir -p ~/test-results/junit/
+            find . -type f -regex ".*/build/test-results/.*xml" -exec cp {} ~/test-results/junit/ \;
+            find . -type f -regex ".*/build/test-results/.*xml" | zip ~/test-results/junit/junit.zip -@;
+          when: always
+      - store_test_results:
+          path: ~/test-results
+      - store_artifacts:
+          path: ~/test-results/junit
+
 jobs:
   build:
     executor: job-executor
@@ -25,6 +41,7 @@ jobs:
             - v1-dependencies-
 
       - run: ./gradlew build
+      - collect-gradle-tests
       - save_cache:
           paths:
             - ~/.gradle
