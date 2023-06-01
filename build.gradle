@@ -53,7 +53,7 @@ dependencies {
     pluginLibs group: 'com.esotericsoftware.yamlbeans', name: 'yamlbeans', version:'1.13'
 
     testImplementation group: 'com.github.tomakehurst', name: 'wiremock-standalone', version:'2.23.2'
-    testImplementation group: 'junit', name: 'junit', version:'4.12'
+    testImplementation group: 'junit', name: 'junit', version:'4.13.1'
 
     testImplementation (
             'org.mockito:mockito-all:1.9.5',

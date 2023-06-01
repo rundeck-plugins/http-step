@@ -403,7 +403,7 @@ public class HttpBuilder {
                 } else {
                     // Create a brand new client
                     log.log(5,"Creating new OAuth client with key " + clientKey);
-                    client = new OAuthClient(OAuthClient.GrantType.CLIENT_CREDENTIALS);
+                    client = new OAuthClient(OAuthClient.GrantType.CLIENT_CREDENTIALS, log);
                     client.setCredentials(clientId, clientSecret);
                     client.setTokenEndpoint(tokenEndpoint);
                     client.setValidateEndpoint(validateEndpoint);

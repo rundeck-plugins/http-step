@@ -1,6 +1,7 @@
 package edu.ohio.ais.rundeck.util;
 
 import com.dtolabs.rundeck.core.utils.Base64;
+import com.dtolabs.rundeck.plugins.PluginLogger;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.apache.http.HttpHeaders;
@@ -10,6 +11,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Map;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
@@ -43,7 +45,7 @@ public class OAuthClientTest {
      * @return OAuthClient
      */
     public OAuthClient setupClient() {
-        OAuthClient client = new OAuthClient(OAuthClient.GrantType.CLIENT_CREDENTIALS);
+        OAuthClient client = new OAuthClient(OAuthClient.GrantType.CLIENT_CREDENTIALS, new TestLogger());
         client.setCredentials(CLIENT_VALID, CLIENT_SECRET);
         client.setTokenEndpoint(BASE_URI + ENDPOINT_TOKEN);
         client.setValidateEndpoint(BASE_URI + ENDPOINT_VALIDATE);
@@ -211,7 +213,7 @@ public class OAuthClientTest {
 
     @Test()
     public void canHandleMissingValidateEndpoint() throws HttpResponseException, IOException, OAuthClient.OAuthException {
-        OAuthClient client = new OAuthClient(OAuthClient.GrantType.CLIENT_CREDENTIALS);
+        OAuthClient client = new OAuthClient(OAuthClient.GrantType.CLIENT_CREDENTIALS, new TestLogger());
         client.setTokenEndpoint(BASE_URI + ENDPOINT_TOKEN);
         client.setCredentials(CLIENT_VALID, CLIENT_SECRET);
         client.doTokenValidate();
@@ -242,6 +244,24 @@ public class OAuthClientTest {
         } catch(HttpResponseException hce) {
             assertFalse(hce.getMessage().contains(ERROR_UNAUTHORIZED_GRANT_TYPE_DESCRIPTION));
             assertTrue(hce.getMessage().contains(ERROR_UNAUTHORIZED_GRANT_TYPE));
+        }
+    }
+
+    class TestLogger implements PluginLogger{
+
+        @Override
+        public void log(int level, String message) {
+
+        }
+
+        @Override
+        public void log(int level, String message, Map eventMeta) {
+
+        }
+
+        @Override
+        public void event(String eventType, String message, Map eventMeta) {
+
         }
     }
 }

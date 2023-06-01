@@ -1,9 +1,8 @@
 package edu.ohio.ais.rundeck.util;
 
+import com.dtolabs.rundeck.plugins.PluginLogger;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -27,7 +26,8 @@ import java.util.List;
  * Currently this only supports the CLIENT_CREDENTIALS grant type.
  */
 public class OAuthClient {
-    private static final Log log = LogFactory.getLog(OAuthClient.class);
+
+    PluginLogger log;
 
     public static final String JSON_CONTENT_TYPE = "application/json";
     public static final String FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
@@ -62,6 +62,22 @@ public class OAuthClient {
     String accessToken;
 
     /**
+     * Initialize the OAuth client with the specified grant type.
+     *
+     * @param grantType
+     */
+    public OAuthClient(GrantType grantType, PluginLogger log) {
+        this.httpClient = HttpClientBuilder.create()
+                .disableAuthCaching()
+                .disableAutomaticRetries()
+                .build();
+
+        this.log = log;
+
+        this.grantType = grantType;
+    }
+
+    /**
      * Try and build a reasonable error from the response. We try to
      * use the optional "error_description" property if it's there, otherwise
      * we stick with the "error" property, which is required. For
@@ -85,7 +101,7 @@ public class OAuthClient {
                 }
             }
         } catch (IOException e) {
-            log.error(e);
+            log.log(0, e.getMessage());
             error += ": Unable to parse error response: " + e.getMessage();
         }
 
@@ -101,7 +117,7 @@ public class OAuthClient {
     void doTokenRequest() throws HttpResponseException, OAuthException, IOException {
         this.accessToken = null;
 
-        log.debug("Requesting access token from " + this.tokenEndpoint);
+        log.log(5, "Requesting access token from " + this.tokenEndpoint);
 
         List<NameValuePair> params = new ArrayList<>();
         params.add(new BasicNameValuePair(FIELD_GRANT_TYPE, this.grantType.name().toLowerCase()));
@@ -164,7 +180,7 @@ public class OAuthClient {
         }
 
         if(this.validateEndpoint != null) {
-            log.debug("Validating access token at " + this.validateEndpoint);
+            log.log(5,"Validating access token at " + this.validateEndpoint);
 
             HttpUriRequest request = RequestBuilder.create("GET")
                     .setUri(this.validateEndpoint)
@@ -193,23 +209,11 @@ public class OAuthClient {
                 throw new HttpResponseException(response.getStatusLine().getStatusCode(), buildError(response));
             }
         } else {
-            log.debug("No validate endpoint exists, skipping validation.");
+            log.log(5, "No validate endpoint exists, skipping validation.");
         }
     }
 
-    /**
-     * Initialize the OAuth client with the specified grant type.
-     *
-     * @param grantType
-     */
-    public OAuthClient(GrantType grantType) {
-        this.httpClient = HttpClientBuilder.create()
-                .disableAuthCaching()
-                .disableAutomaticRetries()
-                .build();
 
-        this.grantType = grantType;
-    }
 
     /**
      * Set the credentials to use with this client.
@@ -218,7 +222,7 @@ public class OAuthClient {
      * @param clientSecret
      */
     public void setCredentials(String clientId, String clientSecret) {
-        log.trace("Setting credentials to " + this.clientId + ":" + this.clientSecret);
+        log.log(5, "Setting credentials to " + this.clientId + ":" + this.clientSecret);
 
         this.clientId = clientId;
         this.clientSecret = clientSecret;
@@ -246,7 +250,7 @@ public class OAuthClient {
      * Invalidate our current access token.
      */
     public void invalidateAccessToken() {
-        log.debug("Invalidating access token.");
+        log.log(5, "Invalidating access token.");
         this.accessToken = null;
     }
 
