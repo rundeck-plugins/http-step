@@ -128,32 +128,25 @@ public class HttpBuilder {
             response = this.getHttpClient(options).execute(request);
 
             if(options.containsKey("printResponseCode") && Boolean.parseBoolean(options.get("printResponseCode").toString())) {
-
                 String responseCode = response.getStatusLine().toString();
                 log.log(2, "Response Code: " + responseCode);
             }
 
             //print the response content
-            if(options.containsKey("printResponse") && Boolean.parseBoolean(options.get("printResponse").toString()) ||
-                    options.containsKey("printResponseToFile") && Boolean.parseBoolean(options.get("printResponseToFile").toString())) {
-
+            if(options.containsKey("printResponse") && Boolean.parseBoolean(options.get("printResponse").toString())) {
                 String output = this.prettyPrint(response);
+                //print response
+                log.log(2, output);
+            }
 
-                if(Boolean.parseBoolean(options.get("printResponse").toString())) {
-                    //print response
-                    log.log(2, output);
-                }
+            if(options.containsKey("printResponseToFile") && Boolean.parseBoolean(options.get("printResponseToFile").toString())){
+                String output = this.prettyPrint(response);
+                File file = new File(options.get("file").toString());
+                BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+                writer.write (output);
 
-                if(Boolean.parseBoolean(options.get("printResponseToFile").toString())) {
-
-                    File file = new File(options.get("file").toString());
-                    BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-                    writer.write (output);
-
-                    //Close writer
-                    writer.close();
-                }
-
+                //Close writer
+                writer.close();
             }
 
             //check response status

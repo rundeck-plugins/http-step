@@ -1,6 +1,7 @@
 plugins {
     id 'pl.allegro.tech.build.axion-release' version '1.13.4'
     id 'java'
+    id 'maven-publish'
 }
 
 apply plugin: 'java'
@@ -10,6 +11,7 @@ ext.rundeckPluginVersion = '1.2'
 ext.pluginClassNames='edu.ohio.ais.rundeck.HttpWorkflowStepPlugin,edu.ohio.ais.rundeck.HttpWorkflowNodeStepPlugin'
 ext.pluginName = 'Rundeck Http Step'
 ext.pluginDescription = 'A workflow plugin that makes HTTP requests'
+group = 'com.github.rundeck-plugins'
 
 scmVersion {
     ignoreUncommittedChanges = true
@@ -46,7 +48,7 @@ configurations{
 }
 
 dependencies {
-    implementation 'org.rundeck:rundeck-core:4.13.+'
+    implementation 'org.rundeck:rundeck-core:4.13.0-20230515'
 
     pluginLibs group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.14'
     pluginLibs group: 'com.google.code.gson', name: 'gson', version:'2.10.1'
@@ -91,4 +93,13 @@ jar {
     }
     dependsOn(copyToLib)
 
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            artifactId = 'http-step'
+            from components.java
+        }
+    }
 }
