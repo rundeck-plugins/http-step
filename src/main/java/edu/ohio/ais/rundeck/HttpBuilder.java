@@ -119,7 +119,7 @@ public class HttpBuilder {
      * @param attempts The attempt number
      * @throws StepException Thrown when any error occurs
      */
-    protected void doRequest(Map<String, Object> options, HttpUriRequest request, Integer attempts) throws StepException {
+    public void doRequest(Map<String, Object> options, HttpUriRequest request, Integer attempts) throws StepException {
         if(attempts > this.maxAttempts) {
             throw new StepException("Unable to complete request after maximum number of attempts.", StepFailureReason.IOFailure);
         }
@@ -128,32 +128,25 @@ public class HttpBuilder {
             response = this.getHttpClient(options).execute(request);
 
             if(options.containsKey("printResponseCode") && Boolean.parseBoolean(options.get("printResponseCode").toString())) {
-
                 String responseCode = response.getStatusLine().toString();
                 log.log(2, "Response Code: " + responseCode);
             }
 
             //print the response content
-            if(options.containsKey("printResponse") && Boolean.parseBoolean(options.get("printResponse").toString()) ||
-                    options.containsKey("printResponseToFile") && Boolean.parseBoolean(options.get("printResponseToFile").toString())) {
-
+            if(options.containsKey("printResponse") && Boolean.parseBoolean(options.get("printResponse").toString())) {
                 String output = this.prettyPrint(response);
+                //print response
+                log.log(2, output);
+            }
 
-                if(Boolean.parseBoolean(options.get("printResponse").toString())) {
-                    //print response
-                    log.log(2, output);
-                }
+            if(options.containsKey("printResponseToFile") && Boolean.parseBoolean(options.get("printResponseToFile").toString())){
+                String output = this.prettyPrint(response);
+                File file = new File(options.get("file").toString());
+                BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+                writer.write (output);
 
-                if(Boolean.parseBoolean(options.get("printResponseToFile").toString())) {
-
-                    File file = new File(options.get("file").toString());
-                    BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-                    writer.write (output);
-
-                    //Close writer
-                    writer.close();
-                }
-
+                //Close writer
+                writer.close();
             }
 
             //check response status
@@ -403,7 +396,7 @@ public class HttpBuilder {
                 } else {
                     // Create a brand new client
                     log.log(5,"Creating new OAuth client with key " + clientKey);
-                    client = new OAuthClient(OAuthClient.GrantType.CLIENT_CREDENTIALS);
+                    client = new OAuthClient(OAuthClient.GrantType.CLIENT_CREDENTIALS, log);
                     client.setCredentials(clientId, clientSecret);
                     client.setTokenEndpoint(tokenEndpoint);
                     client.setValidateEndpoint(validateEndpoint);
