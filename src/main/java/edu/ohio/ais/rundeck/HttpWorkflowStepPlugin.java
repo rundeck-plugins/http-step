@@ -65,7 +65,6 @@ public class HttpWorkflowStepPlugin implements StepPlugin, Describable, ProxySec
         return new HttpDescription(SERVICE_PROVIDER_NAME, "HTTP Request Step", "Performs an HTTP request with or without authentication").getDescription();
     }
 
-
     @Override
     public void executeStep(PluginStepContext pluginStepContext, Map<String, Object> options) throws StepException {
         PluginLogger log = pluginStepContext.getLogger();
@@ -137,7 +136,6 @@ public class HttpWorkflowStepPlugin implements StepPlugin, Describable, ProxySec
     public SecretBundle prepareSecretBundleWorkflowStep(ExecutionContext context, Map<String, Object> configuration) {
         return SecretBundleUtil.getSecrets(context, configuration);
     }
-
 
     @Override
     public List<String> listSecretsPathWorkflowStep(ExecutionContext context, Map<String, Object> configuration) {

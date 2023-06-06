@@ -3,7 +3,6 @@ package edu.ohio.ais.rundeck;
 import com.dtolabs.rundeck.core.common.INodeEntry;
 import com.dtolabs.rundeck.core.dispatcher.DataContextUtils;
 import com.dtolabs.rundeck.core.execution.ExecutionContext;
-import com.dtolabs.rundeck.core.execution.proxy.DefaultSecretBundle;
 import com.dtolabs.rundeck.core.execution.proxy.ProxySecretBundleCreator;
 import com.dtolabs.rundeck.core.execution.proxy.SecretBundle;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepException;
