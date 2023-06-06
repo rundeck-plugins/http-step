@@ -1,6 +1,9 @@
 package edu.ohio.ais.rundeck;
 
 import com.dtolabs.rundeck.core.dispatcher.DataContextUtils;
+import com.dtolabs.rundeck.core.execution.ExecutionContext;
+import com.dtolabs.rundeck.core.execution.proxy.ProxySecretBundleCreator;
+import com.dtolabs.rundeck.core.execution.proxy.SecretBundle;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepException;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepFailureReason;
 import com.dtolabs.rundeck.core.plugins.Plugin;
@@ -11,15 +14,14 @@ import com.dtolabs.rundeck.plugins.ServiceNameConstants;
 import com.dtolabs.rundeck.plugins.step.PluginStepContext;
 import com.dtolabs.rundeck.plugins.step.StepPlugin;
 import edu.ohio.ais.rundeck.util.OAuthClient;
+import edu.ohio.ais.rundeck.util.SecretBundleUtil;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.entity.ByteArrayEntity;
 
 import java.io.*;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -27,7 +29,7 @@ import java.util.Map;
  * tokens when they're expired and sending the appropriate request.
  */
 @Plugin(name = HttpWorkflowStepPlugin.SERVICE_PROVIDER_NAME, service = ServiceNameConstants.WorkflowStep)
-public class HttpWorkflowStepPlugin implements StepPlugin, Describable {
+public class HttpWorkflowStepPlugin implements StepPlugin, Describable, ProxySecretBundleCreator {
 
     /**
      * Maximum number of attempts with which to try the request.
@@ -129,6 +131,17 @@ public class HttpWorkflowStepPlugin implements StepPlugin, Describable {
         }
 
         builder.doRequest(options, request.build(), 1);
+    }
+
+    @Override
+    public SecretBundle prepareSecretBundleWorkflowStep(ExecutionContext context, Map<String, Object> configuration) {
+        return SecretBundleUtil.getSecrets(context, configuration);
+    }
+
+
+    @Override
+    public List<String> listSecretsPathWorkflowStep(ExecutionContext context, Map<String, Object> configuration) {
+        return SecretBundleUtil.getListSecrets(configuration);
     }
 
 }

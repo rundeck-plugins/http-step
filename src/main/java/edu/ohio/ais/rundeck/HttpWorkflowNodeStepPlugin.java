@@ -2,6 +2,10 @@ package edu.ohio.ais.rundeck;
 
 import com.dtolabs.rundeck.core.common.INodeEntry;
 import com.dtolabs.rundeck.core.dispatcher.DataContextUtils;
+import com.dtolabs.rundeck.core.execution.ExecutionContext;
+import com.dtolabs.rundeck.core.execution.proxy.DefaultSecretBundle;
+import com.dtolabs.rundeck.core.execution.proxy.ProxySecretBundleCreator;
+import com.dtolabs.rundeck.core.execution.proxy.SecretBundle;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepException;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepFailureReason;
 import com.dtolabs.rundeck.core.execution.workflow.steps.node.NodeStepException;
@@ -13,18 +17,17 @@ import com.dtolabs.rundeck.plugins.ServiceNameConstants;
 import com.dtolabs.rundeck.plugins.step.NodeStepPlugin;
 import com.dtolabs.rundeck.plugins.step.PluginStepContext;
 import edu.ohio.ais.rundeck.util.OAuthClient;
+import edu.ohio.ais.rundeck.util.SecretBundleUtil;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.entity.ByteArrayEntity;
 
 import java.io.UnsupportedEncodingException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Plugin(name = HttpWorkflowNodeStepPlugin.SERVICE_PROVIDER_NAME, service = ServiceNameConstants.WorkflowNodeStep)
-public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable {
+public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable, ProxySecretBundleCreator {
     public static final String SERVICE_PROVIDER_NAME = "edu.ohio.ais.rundeck.HttpWorkflowNodeStepPlugin";
 
     /**
@@ -133,5 +136,15 @@ public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable {
             throw new NodeStepException(e.getMessage(), e.getFailureReason(), entry.getNodename());
         }
 
+    }
+
+    @Override
+    public SecretBundle prepareSecretBundleWorkflowNodeStep(ExecutionContext context, INodeEntry node, Map<String, Object> configuration) {
+        return SecretBundleUtil.getSecrets(context, configuration);
+    }
+
+    @Override
+    public List<String> listSecretsPathWorkflowNodeStep(ExecutionContext context, INodeEntry node, Map<String, Object> configuration) {
+        return SecretBundleUtil.getListSecrets(configuration);
     }
 }

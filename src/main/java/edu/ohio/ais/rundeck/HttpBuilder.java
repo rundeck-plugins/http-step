@@ -11,6 +11,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParser;
 import edu.ohio.ais.rundeck.util.OAuthClient;
+import edu.ohio.ais.rundeck.util.SecretBundleUtil;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -331,25 +332,15 @@ public class HttpBuilder {
 
         if(options.containsKey("password") ){
             String passwordRaw = options.containsKey("password") ? options.get("password").toString() : null;
-
             //to avid the test error add a try-catch
             //if it didn't find the key path, it will use the password directly
-            try {
-                ResourceMeta contents = pluginStepContext.getExecutionContext().getStorageTree().getResource(passwordRaw).getContents();
-
-                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-
-                contents.writeContent(byteArrayOutputStream);
-
-                password = new String(byteArrayOutputStream.toByteArray());
-            } catch (Exception e) {
-                password=null;
+            byte[] content = SecretBundleUtil.getStoragePassword(pluginStepContext.getExecutionContext(),passwordRaw );
+            if(content!=null){
+                password = new String(content);
             }
-
             if(password==null){
                 password=passwordRaw;
             }
-
         }
 
         if(authentication.equals(AUTH_BASIC)) {
