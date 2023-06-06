@@ -154,9 +154,12 @@ public class HttpWorkflowNodeStepPluginTest {
                 .willReturn(WireMock.aResponse().withFixedDelay(SLOW_TIMEOUT).withStatus(200)));
 
         node = Mockito.mock(INodeEntry.class);
-        pluginContext = Mockito.mock(PluginStepContext.class);
         pluginLogger = Mockito.mock(PluginLogger.class);
+        pluginContext = Mockito.mock(PluginStepContext.class);
+        ExecutionContext executionContext = Mockito.mock(ExecutionContext.class);
+        when(executionContext.getExecutionLogger()).thenReturn(pluginLogger);
         when(pluginContext.getLogger()).thenReturn(pluginLogger);
+        when(pluginContext.getExecutionContext()).thenReturn(executionContext);
 
         dataContext =new HashMap<>();
         when(pluginContext.getDataContext()).thenReturn(dataContext);

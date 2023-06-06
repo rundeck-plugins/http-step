@@ -1,5 +1,6 @@
 package edu.ohio.ais.rundeck;
 
+import com.dtolabs.rundeck.core.execution.ExecutionContext;
 import com.dtolabs.rundeck.core.execution.workflow.steps.PluginStepContextImpl;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepException;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepFailureReason;
@@ -19,6 +20,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.when;
 
 public class HttpWorkflowStepPluginTest {
     protected static final String REMOTE_URL = "/trigger";
@@ -153,7 +155,10 @@ public class HttpWorkflowStepPluginTest {
 
         pluginContext = Mockito.mock(PluginStepContext.class);
         pluginLogger = Mockito.mock(PluginLogger.class);
-        Mockito.when(pluginContext.getLogger()).thenReturn(pluginLogger);
+        ExecutionContext executionContext = Mockito.mock(ExecutionContext.class);
+        when(executionContext.getExecutionLogger()).thenReturn(pluginLogger);
+        when(pluginContext.getLogger()).thenReturn(pluginLogger);
+        when(pluginContext.getExecutionContext()).thenReturn(executionContext);
 
         dataContext =new HashMap<>();
         Mockito.when(pluginContext.getDataContext()).thenReturn(dataContext);
