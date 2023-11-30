@@ -125,6 +125,7 @@ public class HttpBuilder {
             throw new StepException("Unable to complete request after maximum number of attempts.", StepFailureReason.IOFailure);
         }
         CloseableHttpResponse response = null;
+        String output = null;
         try {
             response = this.getHttpClient(options).execute(request);
 
@@ -135,16 +136,15 @@ public class HttpBuilder {
 
             //print the response content
             if(options.containsKey("printResponse") && Boolean.parseBoolean(options.get("printResponse").toString())) {
-                String output = this.prettyPrint(response);
+                output = this.prettyPrint(response);
                 //print response
                 log.log(2, output);
             }
 
             if(options.containsKey("printResponseToFile") && Boolean.parseBoolean(options.get("printResponseToFile").toString())){
-                String output = this.prettyPrint(response);
                 File file = new File(options.get("file").toString());
                 BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-                writer.write (output);
+                if( output != null ) writer.write (output);
 
                 //Close writer
                 writer.close();
