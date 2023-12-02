@@ -144,7 +144,11 @@ public class HttpBuilder {
             if(options.containsKey("printResponseToFile") && Boolean.parseBoolean(options.get("printResponseToFile").toString())){
                 File file = new File(options.get("file").toString());
                 BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-                if( output != null ) writer.write (output);
+                if( output == null ){
+                    output = this.prettyPrint(response);
+                }
+
+                writer.write (output);
 
                 //Close writer
                 writer.close();
