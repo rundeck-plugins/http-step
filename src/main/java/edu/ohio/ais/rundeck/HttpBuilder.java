@@ -249,10 +249,7 @@ public class HttpBuilder {
     }
 
     private String getOutputForResponse(String printer){
-        if( !printer.isEmpty() ){
-            return printer;
-        }
-        return "";
+        return !printer.isEmpty() ? printer : "";
     }
 
     private StringBuffer getPageContent(HttpResponse response) {
