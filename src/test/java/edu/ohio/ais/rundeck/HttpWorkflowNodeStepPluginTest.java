@@ -383,4 +383,19 @@ public class HttpWorkflowNodeStepPluginTest {
         this.plugin.executeNodeStep(pluginContext, options, node );
         assertNotNull(readFileAsString(testResource.toString()));
     }
+
+    @Test
+    public void canPrintContentToFileIfPrintResponseIsFalse() throws NodeStepException, IOException {
+        Map<String, Object> options = new HashMap<>();
+
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + NO_CONTENT_URL);
+        options.put("method", "GET");
+        options.put("printResponse",false);
+        options.put("printResponseToFile",true);
+        options.put("file", testResource);
+
+        assertNotNull(Paths.get(testResource.toString()));
+        this.plugin.executeNodeStep(pluginContext, options, node );
+        assertNotNull(readFileAsString(testResource.toString()));
+    }
 }
