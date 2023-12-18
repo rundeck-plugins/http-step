@@ -110,13 +110,6 @@ public class HttpWorkflowNodeStepPluginTest {
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(18089);
 
-    @After
-    public void tearDown(){
-        if( Files.exists(this.testResource.toPath()) ){
-            FileUtils.delete(this.testResource);
-        }
-    }
-
     @Before
     public void setUp() {
         plugin = new HttpWorkflowNodeStepPlugin();
@@ -186,6 +179,17 @@ public class HttpWorkflowNodeStepPluginTest {
         dataContext =new HashMap<>();
         when(pluginContext.getDataContext()).thenReturn(dataContext);
 
+        if( !Files.exists(resourcePath.toPath()) ){
+            resourcePath.mkdir();
+        }
+
+    }
+
+    @After
+    public void tearDown(){
+        if( Files.exists(this.testResource.toPath()) ){
+            FileUtils.delete(this.testResource);
+        }
     }
 
     @Test()
