@@ -179,10 +179,6 @@ public class HttpWorkflowNodeStepPluginTest {
         dataContext =new HashMap<>();
         when(pluginContext.getDataContext()).thenReturn(dataContext);
 
-        if( !Files.exists(resourcePath.toPath()) ){
-            resourcePath.mkdir();
-        }
-
     }
 
     @After
