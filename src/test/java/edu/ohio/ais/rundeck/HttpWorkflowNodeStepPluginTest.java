@@ -11,11 +11,18 @@ import com.dtolabs.rundeck.plugins.step.PluginStepContext;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import edu.ohio.ais.rundeck.util.OAuthClientTest;
+import org.apache.tools.ant.util.FileUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,6 +53,8 @@ public class HttpWorkflowNodeStepPluginTest {
     protected PluginStepContext pluginContext;
     protected PluginLogger pluginLogger;
     protected INodeEntry node;
+    protected File resourcePath = new File("src" + File.separator + "test" + File.separator + "resources");
+    protected File testResource = new File(resourcePath + File.separator + "example.json");
 
     /**
      * Setup options for simple execution for the given method.
@@ -92,8 +101,21 @@ public class HttpWorkflowNodeStepPluginTest {
         return options;
     }
 
+    private static String readFileAsString(String filePath) throws IOException {
+        Path path = Paths.get(filePath);
+        byte[] bytes = Files.readAllBytes(path);
+        return new String(bytes);
+    }
+
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(18089);
+
+    @After
+    public void tearDown(){
+        if( Files.exists(this.testResource.toPath()) ){
+            FileUtils.delete(this.testResource);
+        }
+    }
 
     @Before
     public void setUp() {
@@ -345,5 +367,35 @@ public class HttpWorkflowNodeStepPluginTest {
         options.put("printResponseToFile",false);
 
         this.plugin.executeNodeStep(pluginContext, options, node );
+    }
+
+    @Test
+    public void canPrintContentToFile() throws NodeStepException, IOException {
+        Map<String, Object> options = new HashMap<>();
+
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + NO_CONTENT_URL);
+        options.put("method", "GET");
+        options.put("printResponse",true);
+        options.put("printResponseToFile",true);
+        options.put("file", testResource);
+
+        assertNotNull(Paths.get(testResource.toString()));
+        this.plugin.executeNodeStep(pluginContext, options, node );
+        assertNotNull(readFileAsString(testResource.toString()));
+    }
+
+    @Test
+    public void canPrintContentToFileIfPrintResponseIsFalse() throws NodeStepException, IOException {
+        Map<String, Object> options = new HashMap<>();
+
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + NO_CONTENT_URL);
+        options.put("method", "GET");
+        options.put("printResponse",false);
+        options.put("printResponseToFile",true);
+        options.put("file", testResource);
+
+        assertNotNull(Paths.get(testResource.toString()));
+        this.plugin.executeNodeStep(pluginContext, options, node );
+        assertNotNull(readFileAsString(testResource.toString()));
     }
 }
