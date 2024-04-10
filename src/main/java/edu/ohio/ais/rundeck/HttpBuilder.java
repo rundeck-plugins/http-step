@@ -6,7 +6,6 @@ import com.dtolabs.rundeck.core.execution.workflow.steps.StepFailureReason;
 import com.dtolabs.rundeck.core.storage.ResourceMeta;
 import com.dtolabs.rundeck.plugins.PluginLogger;
 import com.dtolabs.rundeck.plugins.step.PluginStepContext;
-import com.esotericsoftware.yamlbeans.YamlReader;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParser;
@@ -28,6 +27,8 @@ import org.apache.http.util.EntityUtils;
 import org.dom4j.DocumentHelper;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.XMLWriter;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
 
 import java.io.*;
 import java.security.GeneralSecurityException;
@@ -438,9 +439,8 @@ public class HttpBuilder {
             map = new HashMap<>();
             Object object = null;
             try {
-                YamlReader reader = new YamlReader(headers);
-                object = reader.read();
-                map = (Map<String,String>) object;
+                Yaml yaml = new Yaml(new Constructor(Map.class));
+                map = yaml.load(headers);
             } catch (Exception e) {
                 map = null;
             }
