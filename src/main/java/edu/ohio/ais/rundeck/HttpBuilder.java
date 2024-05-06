@@ -27,8 +27,10 @@ import org.apache.http.util.EntityUtils;
 import org.dom4j.DocumentHelper;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.XMLWriter;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 import java.io.*;
 import java.security.GeneralSecurityException;
@@ -439,7 +441,7 @@ public class HttpBuilder {
             map = new HashMap<>();
             Object object = null;
             try {
-                Yaml yaml = new Yaml(new Constructor(Map.class));
+                Yaml yaml = new Yaml(new SafeConstructor(new LoaderOptions()));
                 map = yaml.load(headers);
             } catch (Exception e) {
                 map = null;
