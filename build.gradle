@@ -6,7 +6,7 @@ plugins {
 
 apply plugin: 'java'
 
-sourceCompatibility = 1.8
+sourceCompatibility = 1.11
 ext.rundeckPluginVersion = '1.2'
 ext.pluginClassNames='edu.ohio.ais.rundeck.HttpWorkflowStepPlugin,edu.ohio.ais.rundeck.HttpWorkflowNodeStepPlugin'
 ext.pluginName = 'Rundeck Http Step'
@@ -48,7 +48,7 @@ configurations{
 }
 
 dependencies {
-    implementation 'org.rundeck:rundeck-core:4.14.0-rc1-20230606'
+    implementation 'org.rundeck:rundeck-core:5.2.0-20240410'
 
     pluginLibs group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.14'
     pluginLibs group: 'com.google.code.gson', name: 'gson', version:'2.10.1'
