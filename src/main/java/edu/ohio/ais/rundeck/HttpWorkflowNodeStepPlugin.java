@@ -5,16 +5,20 @@ import com.dtolabs.rundeck.core.dispatcher.DataContextUtils;
 import com.dtolabs.rundeck.core.execution.ExecutionContext;
 import com.dtolabs.rundeck.core.execution.proxy.ProxySecretBundleCreator;
 import com.dtolabs.rundeck.core.execution.proxy.SecretBundle;
+import com.dtolabs.rundeck.core.execution.utils.ResolverUtil;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepException;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepFailureReason;
 import com.dtolabs.rundeck.core.execution.workflow.steps.node.NodeStepException;
 import com.dtolabs.rundeck.core.plugins.Plugin;
 import com.dtolabs.rundeck.core.plugins.configuration.Describable;
 import com.dtolabs.rundeck.core.plugins.configuration.Description;
+import com.dtolabs.rundeck.core.utils.IPropertyLookup;
 import com.dtolabs.rundeck.plugins.PluginLogger;
 import com.dtolabs.rundeck.plugins.ServiceNameConstants;
+import com.dtolabs.rundeck.plugins.descriptions.PluginProperty;
 import com.dtolabs.rundeck.plugins.step.NodeStepPlugin;
 import com.dtolabs.rundeck.plugins.step.PluginStepContext;
+import com.dtolabs.rundeck.plugins.util.DescriptionBuilder;
 import edu.ohio.ais.rundeck.util.OAuthClient;
 import edu.ohio.ais.rundeck.util.SecretBundleUtil;
 import org.apache.http.HttpEntity;
@@ -26,7 +30,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.*;
 
 @Plugin(name = HttpWorkflowNodeStepPlugin.SERVICE_PROVIDER_NAME, service = ServiceNameConstants.WorkflowNodeStep)
-public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable, ProxySecretBundleCreator {
+public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable, ProxySecretBundleCreator, DescriptionBuilder.Collaborator {
     public static final String SERVICE_PROVIDER_NAME = "edu.ohio.ais.rundeck.HttpWorkflowNodeStepPlugin";
 
     /**
@@ -40,6 +44,12 @@ public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable, 
      */
     public static final Integer DEFAULT_TIMEOUT = 30*1000;
 
+//    @PluginProperty(
+//            title = "Proxy URL",
+//            description = "HTTP URL to which to make the request.",
+//            required = true
+//    )
+//    String proxyURL;
 
     /**
      * Synchronized map of all existing OAuth clients. This is indexed by
@@ -57,6 +67,14 @@ public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable, 
     @Override
     public void executeNodeStep(PluginStepContext context, Map<String, Object> configuration, INodeEntry entry) throws NodeStepException {
         PluginLogger log = context.getLogger();
+
+        System.out.println("pre-resolver proxyIp: " + configuration.get("proxyIP"));
+//        propertyResolver("proxySettings", configuration, context);
+        propertyResolver("proxyIP", configuration, context);
+//        propertyResolver("proxyPort", configuration, context);
+
+        System.out.println("post-resolver proxyIp: " + configuration.get("proxyIP"));
+//        System.out.println("proxySettings: " + configuration.get("proxySettings"));
 
         // Parse out the options
         String remoteUrl = configuration.containsKey("remoteUrl") ? configuration.get("remoteUrl").toString() : null;
@@ -145,5 +163,30 @@ public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable, 
     @Override
     public List<String> listSecretsPathWorkflowNodeStep(ExecutionContext context, INodeEntry node, Map<String, Object> configuration) {
         return SecretBundleUtil.getListSecrets(configuration);
+    }
+
+    void propertyResolver(String property, Map<String,Object> Configuration, PluginStepContext context) {
+
+        String projectPrefix = "project.plugin.WorkflowNodeStep." + "HttpWorkflowNodeStepPlugin" + ".";
+        String frameworkPrefix = "framework.plugin.WorkflowNodeStep" + SERVICE_PROVIDER_NAME + ".";
+
+        Map<String,String> projectProperties = context.getFramework().getFrameworkProjectMgr().getFrameworkProject(context.getFrameworkProject()).getProperties();
+        IPropertyLookup frameworkProperties = context.getFramework().getPropertyLookup();
+
+        if(!Configuration.containsKey(property) && projectProperties.containsKey(projectPrefix + property)) {
+
+            Configuration.put(property, projectProperties.get(projectPrefix + property));
+
+        } else if (!Configuration.containsKey(property) && frameworkProperties.hasProperty(frameworkPrefix + property)) {
+
+            Configuration.put(property, frameworkProperties.getProperty(frameworkPrefix + property));
+
+        }
+        System.out.println("resolver: " + Configuration.get(property));
+    }
+
+    @Override
+    public void buildWith(DescriptionBuilder descriptionBuilder) {
+        descriptionBuilder.mapping("proxyIP", "project.plugin.WorkflowNodeStep.HTTPRequest.proxyIP");
     }
 }
