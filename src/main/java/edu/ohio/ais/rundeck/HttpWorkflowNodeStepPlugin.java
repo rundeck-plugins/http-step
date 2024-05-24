@@ -30,7 +30,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.*;
 
 @Plugin(name = HttpWorkflowNodeStepPlugin.SERVICE_PROVIDER_NAME, service = ServiceNameConstants.WorkflowNodeStep)
-public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable, ProxySecretBundleCreator, DescriptionBuilder.Collaborator {
+public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable, ProxySecretBundleCreator {
     public static final String SERVICE_PROVIDER_NAME = "edu.ohio.ais.rundeck.HttpWorkflowNodeStepPlugin";
 
     /**
@@ -68,9 +68,11 @@ public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable, 
     public void executeNodeStep(PluginStepContext context, Map<String, Object> configuration, INodeEntry entry) throws NodeStepException {
         PluginLogger log = context.getLogger();
 
-        System.out.println("pre-resolver proxyIp: " + configuration.get("proxyIP"));
-//        propertyResolver("proxySettings", configuration, context);
-        propertyResolver("proxyIP", configuration, context);
+        Description description = new HttpDescription(SERVICE_PROVIDER_NAME, "HTTP Request Node Step", "Performs an HTTP request with or without authentication (per node)").getDescription();
+        description.getProperties().forEach(prop->
+            propertyResolver(prop.getName(), configuration, context)
+        );
+//        propertyResolver("proxyIP", configuration, context);
 //        propertyResolver("proxyPort", configuration, context);
 
         System.out.println("post-resolver proxyIp: " + configuration.get("proxyIP"));
@@ -167,7 +169,7 @@ public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable, 
 
     void propertyResolver(String property, Map<String,Object> Configuration, PluginStepContext context) {
 
-        String projectPrefix = "project.plugin.WorkflowNodeStep." + "HttpWorkflowNodeStepPlugin" + ".";
+        String projectPrefix = "project.plugin.WorkflowNodeStep." + SERVICE_PROVIDER_NAME + ".";
         String frameworkPrefix = "framework.plugin.WorkflowNodeStep" + SERVICE_PROVIDER_NAME + ".";
 
         Map<String,String> projectProperties = context.getFramework().getFrameworkProjectMgr().getFrameworkProject(context.getFrameworkProject()).getProperties();
@@ -182,11 +184,7 @@ public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable, 
             Configuration.put(property, frameworkProperties.getProperty(frameworkPrefix + property));
 
         }
-        System.out.println("resolver: " + Configuration.get(property));
+        System.out.println("resolver: " + property + Configuration.get(property));
     }
 
-    @Override
-    public void buildWith(DescriptionBuilder descriptionBuilder) {
-        descriptionBuilder.mapping("proxyIP", "project.plugin.WorkflowNodeStep.HTTPRequest.proxyIP");
-    }
 }

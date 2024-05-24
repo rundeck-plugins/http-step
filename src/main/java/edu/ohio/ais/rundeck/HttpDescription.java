@@ -165,8 +165,6 @@ public class HttpDescription  implements Describable {
                         .defaultValue("false")
                         .renderingOption(StringRenderingConstants.GROUP_NAME,"Print")
                         .build())
-                .mapping("proxyIP","project.plugin.WorkflowNodeStep.HttpWorkflowNodeStepPlugin.proxyIP")
-
                 .build();
     }
 }
