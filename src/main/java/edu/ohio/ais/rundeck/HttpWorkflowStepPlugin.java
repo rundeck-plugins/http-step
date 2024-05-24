@@ -23,6 +23,8 @@ import org.apache.http.entity.ByteArrayEntity;
 import java.io.*;
 import java.util.*;
 
+import static edu.ohio.ais.rundeck.HttpBuilder.propertyResolver;
+
 
 /**
  * Main implementation of the plugin. This will handle fetching
@@ -68,6 +70,11 @@ public class HttpWorkflowStepPlugin implements StepPlugin, Describable, ProxySec
     @Override
     public void executeStep(PluginStepContext pluginStepContext, Map<String, Object> options) throws StepException {
         PluginLogger log = pluginStepContext.getLogger();
+
+        Description description = new HttpDescription(SERVICE_PROVIDER_NAME, "HTTP Request Node Step", "Performs an HTTP request with or without authentication (per node)").getDescription();
+        description.getProperties().forEach(prop->
+                propertyResolver(prop.getName(), options, pluginStepContext, SERVICE_PROVIDER_NAME)
+        );
 
         // Parse out the options
         String remoteUrl = options.containsKey("remoteUrl") ? options.get("remoteUrl").toString() : null;

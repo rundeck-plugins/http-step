@@ -4,6 +4,7 @@ import com.dtolabs.rundeck.core.execution.workflow.steps.FailureReason;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepException;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepFailureReason;
 import com.dtolabs.rundeck.core.storage.ResourceMeta;
+import com.dtolabs.rundeck.core.utils.IPropertyLookup;
 import com.dtolabs.rundeck.plugins.PluginLogger;
 import com.dtolabs.rundeck.plugins.step.PluginStepContext;
 import com.google.gson.Gson;
@@ -108,6 +109,9 @@ public class HttpBuilder {
             httpClientBuilder.setSSLContext(sslContextBuilder.build());
         }
         if(options.containsKey("proxySettings") && Boolean.parseBoolean(options.get("proxySettings").toString())){
+            log.log(5, "using proxy IP: " + options.get("proxyIP").toString());
+            log.log(5, "using proxy Port: " + options.get("proxyPort").toString());
+
             HttpHost proxy = new HttpHost(options.get("proxyIP").toString(), Integer.valueOf((String)options.get("proxyPort")), "http");
             httpClientBuilder.setProxy(proxy);
         }
@@ -460,5 +464,23 @@ public class HttpBuilder {
         }
     }
 
+    static void propertyResolver(String property, Map<String,Object> Configuration, PluginStepContext context, String SERVICE_PROVIDER_NAME) {
+
+        String projectPrefix = "project.plugin.WorkflowNodeStep." + SERVICE_PROVIDER_NAME + ".";
+        String frameworkPrefix = "framework.plugin.WorkflowNodeStep" + SERVICE_PROVIDER_NAME + ".";
+
+        Map<String,String> projectProperties = context.getFramework().getFrameworkProjectMgr().getFrameworkProject(context.getFrameworkProject()).getProperties();
+        IPropertyLookup frameworkProperties = context.getFramework().getPropertyLookup();
+
+        if(!Configuration.containsKey(property) && projectProperties.containsKey(projectPrefix + property)) {
+
+            Configuration.put(property, projectProperties.get(projectPrefix + property));
+
+        } else if (!Configuration.containsKey(property) && frameworkProperties.hasProperty(frameworkPrefix + property)) {
+
+            Configuration.put(property, frameworkProperties.getProperty(frameworkPrefix + property));
+
+        }
+    }
 
 }
