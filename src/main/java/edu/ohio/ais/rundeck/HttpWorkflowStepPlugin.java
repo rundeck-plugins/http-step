@@ -73,7 +73,7 @@ public class HttpWorkflowStepPlugin implements StepPlugin, Describable, ProxySec
 
         Description description = new HttpDescription(SERVICE_PROVIDER_NAME, "HTTP Request Node Step", "Performs an HTTP request with or without authentication (per node)").getDescription();
         description.getProperties().forEach(prop->
-                propertyResolver(prop.getName(), options, pluginStepContext, SERVICE_PROVIDER_NAME)
+                propertyResolver("WorflowStep",prop.getName(), options, pluginStepContext, SERVICE_PROVIDER_NAME)
         );
 
         // Parse out the options

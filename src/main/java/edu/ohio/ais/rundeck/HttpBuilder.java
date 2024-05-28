@@ -464,10 +464,10 @@ public class HttpBuilder {
         }
     }
 
-    static void propertyResolver(String property, Map<String,Object> Configuration, PluginStepContext context, String SERVICE_PROVIDER_NAME) {
+    static void propertyResolver(String pluginType, String property, Map<String,Object> Configuration, PluginStepContext context, String SERVICE_PROVIDER_NAME) {
 
-        String projectPrefix = "project.plugin.WorkflowNodeStep." + SERVICE_PROVIDER_NAME + ".";
-        String frameworkPrefix = "framework.plugin.WorkflowNodeStep" + SERVICE_PROVIDER_NAME + ".";
+        String projectPrefix = "project.plugin." + pluginType + "." + SERVICE_PROVIDER_NAME + ".";
+        String frameworkPrefix = "framework.plugin." + pluginType + "." + SERVICE_PROVIDER_NAME + ".";
 
         Map<String,String> projectProperties = context.getFramework().getFrameworkProjectMgr().getFrameworkProject(context.getFrameworkProject()).getProperties();
         IPropertyLookup frameworkProperties = context.getFramework().getPropertyLookup();

@@ -65,7 +65,7 @@ public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable, 
 
         Description description = new HttpDescription(SERVICE_PROVIDER_NAME, "HTTP Request Node Step", "Performs an HTTP request with or without authentication (per node)").getDescription();
         description.getProperties().forEach(prop->
-            propertyResolver(prop.getName(), configuration, context, SERVICE_PROVIDER_NAME)
+            propertyResolver("WorlflowNodeStep", prop.getName(), configuration, context, SERVICE_PROVIDER_NAME)
         );
 
         // Parse out the options
