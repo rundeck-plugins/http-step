@@ -119,6 +119,8 @@ public class HttpBuilder {
 
         if(options.get("useSystemProxySettings").equals("true")) {
 
+            log.log(5, "Using proxy settings set on system");
+
             httpClientBuilder.setRoutePlanner(new SystemDefaultRoutePlanner(ProxySelector.getDefault()));
 
         }
