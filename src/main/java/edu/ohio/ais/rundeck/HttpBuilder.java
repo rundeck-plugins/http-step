@@ -23,6 +23,7 @@ import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.conn.SystemDefaultRoutePlanner;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.util.EntityUtils;
 import org.dom4j.DocumentHelper;
@@ -34,6 +35,7 @@ import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 import java.io.*;
+import java.net.ProxySelector;
 import java.security.GeneralSecurityException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -109,11 +111,16 @@ public class HttpBuilder {
             httpClientBuilder.setSSLContext(sslContextBuilder.build());
         }
         if(options.containsKey("proxySettings") && Boolean.parseBoolean(options.get("proxySettings").toString())){
-            log.log(5, "using proxy IP: " + options.get("proxyIP").toString());
-            log.log(5, "using proxy Port: " + options.get("proxyPort").toString());
+            log.log(5, "proxy IP set in job: " + options.get("proxyIP").toString());
 
             HttpHost proxy = new HttpHost(options.get("proxyIP").toString(), Integer.valueOf((String)options.get("proxyPort")), "http");
             httpClientBuilder.setProxy(proxy);
+        }
+
+        if(options.get("useSystemProxySettings").equals("true")) {
+
+            httpClientBuilder.setRoutePlanner(new SystemDefaultRoutePlanner(ProxySelector.getDefault()));
+
         }
 
         return httpClientBuilder.build();
