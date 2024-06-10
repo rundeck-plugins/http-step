@@ -110,19 +110,18 @@ public class HttpBuilder {
             httpClientBuilder.setSSLHostnameVerifier(new NoopHostnameVerifier());
             httpClientBuilder.setSSLContext(sslContextBuilder.build());
         }
-        if(options.containsKey("proxySettings") && Boolean.parseBoolean(options.get("proxySettings").toString())){
-            log.log(5, "proxy IP set in job: " + options.get("proxyIP").toString());
-
-            HttpHost proxy = new HttpHost(options.get("proxyIP").toString(), Integer.valueOf((String)options.get("proxyPort")), "http");
-            httpClientBuilder.setProxy(proxy);
-        }
-
         if(options.get("useSystemProxySettings").equals("true")) {
 
             log.log(5, "Using proxy settings set on system");
 
             httpClientBuilder.setRoutePlanner(new SystemDefaultRoutePlanner(ProxySelector.getDefault()));
 
+        }
+        if(options.containsKey("proxySettings") && Boolean.parseBoolean(options.get("proxySettings").toString())){
+            log.log(5, "proxy IP set in job: " + options.get("proxyIP").toString());
+
+            HttpHost proxy = new HttpHost(options.get("proxyIP").toString(), Integer.valueOf((String)options.get("proxyPort")), "http");
+            httpClientBuilder.setProxy(proxy);
         }
 
         return httpClientBuilder.build();
