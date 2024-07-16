@@ -4,6 +4,7 @@ import com.dtolabs.rundeck.core.execution.workflow.steps.FailureReason;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepException;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepFailureReason;
 import com.dtolabs.rundeck.core.storage.ResourceMeta;
+import com.dtolabs.rundeck.core.utils.IPropertyLookup;
 import com.dtolabs.rundeck.plugins.PluginLogger;
 import com.dtolabs.rundeck.plugins.step.PluginStepContext;
 import com.google.gson.Gson;
@@ -22,6 +23,7 @@ import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.conn.SystemDefaultRoutePlanner;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.util.EntityUtils;
 import org.dom4j.DocumentHelper;
@@ -33,6 +35,7 @@ import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 import java.io.*;
+import java.net.ProxySelector;
 import java.security.GeneralSecurityException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -107,7 +110,16 @@ public class HttpBuilder {
             httpClientBuilder.setSSLHostnameVerifier(new NoopHostnameVerifier());
             httpClientBuilder.setSSLContext(sslContextBuilder.build());
         }
+        if(options.get("useSystemProxySettings").equals("true") && !Boolean.parseBoolean(options.get("proxySettings").toString())) {
+
+            log.log(5, "Using proxy settings set on system");
+
+            httpClientBuilder.setRoutePlanner(new SystemDefaultRoutePlanner(ProxySelector.getDefault()));
+
+        }
         if(options.containsKey("proxySettings") && Boolean.parseBoolean(options.get("proxySettings").toString())){
+            log.log(5, "proxy IP set in job: " + options.get("proxyIP").toString());
+
             HttpHost proxy = new HttpHost(options.get("proxyIP").toString(), Integer.valueOf((String)options.get("proxyPort")), "http");
             httpClientBuilder.setProxy(proxy);
         }
@@ -460,5 +472,23 @@ public class HttpBuilder {
         }
     }
 
+    static void propertyResolver(String pluginType, String property, Map<String,Object> Configuration, PluginStepContext context, String SERVICE_PROVIDER_NAME) {
+
+        String projectPrefix = "project.plugin." + pluginType + "." + SERVICE_PROVIDER_NAME + ".";
+        String frameworkPrefix = "framework.plugin." + pluginType + "." + SERVICE_PROVIDER_NAME + ".";
+
+        Map<String,String> projectProperties = context.getFramework().getFrameworkProjectMgr().getFrameworkProject(context.getFrameworkProject()).getProperties();
+        IPropertyLookup frameworkProperties = context.getFramework().getPropertyLookup();
+
+        if(!Configuration.containsKey(property) && projectProperties.containsKey(projectPrefix + property)) {
+
+            Configuration.put(property, projectProperties.get(projectPrefix + property));
+
+        } else if (!Configuration.containsKey(property) && frameworkProperties.hasProperty(frameworkPrefix + property)) {
+
+            Configuration.put(property, frameworkProperties.getProperty(frameworkPrefix + property));
+
+        }
+    }
 
 }
