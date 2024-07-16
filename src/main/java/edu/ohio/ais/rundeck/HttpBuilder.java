@@ -110,7 +110,7 @@ public class HttpBuilder {
             httpClientBuilder.setSSLHostnameVerifier(new NoopHostnameVerifier());
             httpClientBuilder.setSSLContext(sslContextBuilder.build());
         }
-        if(options.get("useSystemProxySettings").equals("true")) {
+        if(options.get("useSystemProxySettings").equals("true") && !Boolean.parseBoolean(options.get("proxySettings").toString())) {
 
             log.log(5, "Using proxy settings set on system");
 
