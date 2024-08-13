@@ -30,6 +30,8 @@ import java.io.UnsupportedEncodingException;
 import java.util.*;
 
 import static edu.ohio.ais.rundeck.HttpBuilder.propertyResolver;
+import static edu.ohio.ais.rundeck.HttpBuilder.getIntOption;
+import static edu.ohio.ais.rundeck.HttpBuilder.getStringOption;
 
 @Plugin(name = HttpWorkflowNodeStepPlugin.SERVICE_PROVIDER_NAME, service = ServiceNameConstants.WorkflowNodeStep)
 public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable, ProxySecretBundleCreator {
@@ -69,12 +71,11 @@ public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable, 
         );
 
         // Parse out the options
-        String remoteUrl = configuration.containsKey("remoteUrl") ? configuration.get("remoteUrl").toString() : null;
-        String method = configuration.containsKey("method") ? configuration.get("method").toString() : null;
-
-        Integer timeout = configuration.containsKey("timeout") ? Integer.parseInt(configuration.get("timeout").toString()) : DEFAULT_TIMEOUT;
-        String headers = configuration.containsKey("headers") ? configuration.get("headers").toString() : null;
-        String body = configuration.containsKey("body") ? configuration.get("body").toString() : null;
+        String remoteUrl = getStringOption(configuration, "remoteUrl");
+        String method = getStringOption(configuration, "method");
+        Integer timeout =getIntOption(configuration,"timeout", DEFAULT_TIMEOUT);
+        String headers = getStringOption(configuration, "headers");
+        String body = getStringOption(configuration, "body");
 
         log.log(5, "remoteUrl: " + remoteUrl);
         log.log(5, "method: " + method);

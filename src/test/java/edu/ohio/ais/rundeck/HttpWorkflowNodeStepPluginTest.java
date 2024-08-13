@@ -335,6 +335,7 @@ public class HttpWorkflowNodeStepPluginTest {
 
         options.put("remoteUrl", OAuthClientTest.BASE_URI + ERROR_URL_401);
         options.put("method", "GET");
+        options.put("authentication", HttpBuilder.AUTH_BASIC);
 
         this.plugin.executeNodeStep(pluginContext, options, node );
     }

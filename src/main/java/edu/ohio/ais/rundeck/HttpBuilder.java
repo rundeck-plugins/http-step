@@ -97,7 +97,8 @@ public class HttpBuilder {
         httpClientBuilder.disableAuthCaching();
         httpClientBuilder.disableAutomaticRetries();
 
-        if(options.containsKey("sslVerify") && !Boolean.parseBoolean(options.get("sslVerify").toString())) {
+
+        if(!getBooleanOption(options, "sslVerify", true)) {
             log.log(5,"Disabling all SSL certificate verification.");
             SSLContextBuilder sslContextBuilder = new SSLContextBuilder();
             sslContextBuilder.loadTrustMaterial(null, new TrustStrategy() {
@@ -110,17 +111,15 @@ public class HttpBuilder {
             httpClientBuilder.setSSLHostnameVerifier(new NoopHostnameVerifier());
             httpClientBuilder.setSSLContext(sslContextBuilder.build());
         }
-        if(options.get("useSystemProxySettings").equals("true") && !Boolean.parseBoolean(options.get("proxySettings").toString())) {
-
+        if(getBooleanOption(options, "useSystemProxySettings", false) && !getBooleanOption(options, "proxySettings", false)) {
             log.log(5, "Using proxy settings set on system");
-
-            httpClientBuilder.setRoutePlanner(new SystemDefaultRoutePlanner(ProxySelector.getDefault()));
-
+            HttpHost proxy = new HttpHost(System.getProperty("http.proxyHost"), Integer.parseInt(System.getProperty("http.proxyPort")), "http");
+            httpClientBuilder.setProxy(proxy);
         }
-        if(options.containsKey("proxySettings") && Boolean.parseBoolean(options.get("proxySettings").toString())){
+        if(getBooleanOption(options, "proxySettings", false)){
             log.log(5, "proxy IP set in job: " + options.get("proxyIP").toString());
 
-            HttpHost proxy = new HttpHost(options.get("proxyIP").toString(), Integer.valueOf((String)options.get("proxyPort")), "http");
+            HttpHost proxy = new HttpHost(options.get("proxyIP").toString(), Integer.parseInt((String)options.get("proxyPort")), "http");
             httpClientBuilder.setProxy(proxy);
         }
 
@@ -144,19 +143,19 @@ public class HttpBuilder {
         try {
             response = this.getHttpClient(options).execute(request);
 
-            if(options.containsKey("printResponseCode") && Boolean.parseBoolean(options.get("printResponseCode").toString())) {
+            if(getBooleanOption(options,"printResponseCode",false)) {
                 String responseCode = response.getStatusLine().toString();
                 log.log(2, "Response Code: " + responseCode);
             }
 
             //print the response content
-            if(options.containsKey("printResponse") && Boolean.parseBoolean(options.get("printResponse").toString())) {
+            if(getBooleanOption(options,"printResponse",false)) {
                 output = getOutputForResponse(this.prettyPrint(response));
                 //print response
                 log.log(2, output);
             }
 
-            if(options.containsKey("printResponseToFile") && Boolean.parseBoolean(options.get("printResponseToFile").toString())){
+            if(getBooleanOption(options,"printResponseToFile",false)){
                 File file = new File(options.get("file").toString());
                 BufferedWriter writer = new BufferedWriter(new FileWriter(file));
                 if( output.isEmpty() ){
@@ -170,7 +169,7 @@ public class HttpBuilder {
             }
 
             //check response status
-            if(options.containsKey("checkResponseCode") && Boolean.parseBoolean(options.get("checkResponseCode").toString())) {
+            if(getBooleanOption(options,"checkResponseCode",false)) {
 
                 if(options.containsKey("responseCode")){
                     int responseCode = Integer.valueOf( (String) options.get("responseCode"));
@@ -347,14 +346,14 @@ public class HttpBuilder {
 
 
     String getAuthHeader(PluginStepContext pluginStepContext,  Map<String, Object> options) throws StepException {
-        String authentication = options.containsKey("authentication") ? options.get("authentication").toString() : AUTH_NONE;
+        String authentication = getStringOption(options, "authentication",AUTH_NONE);
         //moving the password to the key storage
         String password=null;
         String authHeader = null;
 
 
         if(options.containsKey("password") ){
-            String passwordRaw = options.containsKey("password") ? options.get("password").toString() : null;
+            String passwordRaw = getStringOption(options, "password");
             //to avid the test error add a try-catch
             //if it didn't find the key path, it will use the password directly
             byte[] content = SecretBundleUtil.getStoragePassword(pluginStepContext.getExecutionContext(),passwordRaw );
@@ -368,7 +367,7 @@ public class HttpBuilder {
 
         if(authentication.equals(AUTH_BASIC)) {
             // Setup the authentication header for BASIC
-            String username = options.containsKey("username") ? options.get("username").toString() : null;
+            String username = getStringOption(options, "username");
 
             if(username == null || password == null) {
                 throw new StepException("Username and password not provided for BASIC Authentication",
@@ -381,9 +380,12 @@ public class HttpBuilder {
             authHeader = "Basic " + com.dtolabs.rundeck.core.utils.Base64.encode(authHeader);
         } else if (authentication.equals(AUTH_OAUTH2)) {
             // Get an OAuth token and setup the auth header for OAuth
-            String tokenEndpoint = options.containsKey("oauthTokenEndpoint") ? options.get("oauthTokenEndpoint").toString() : null;
-            String validateEndpoint = options.containsKey("oauthValidateEndpoint") ? options.get("oauthValidateEndpoint").toString() : null;
-            String clientId = options.containsKey("username") ? options.get("username").toString() : null;
+            String tokenEndpoint = getStringOption(options, "oauthTokenEndpoint");
+            String validateEndpoint = getStringOption(options, "oauthValidateEndpoint");
+            String clientId = getStringOption(options, "username");
+
+
+
             String clientSecret = password;
 
 
@@ -490,5 +492,22 @@ public class HttpBuilder {
 
         }
     }
+
+    static  String getStringOption(Map<String, Object> options, String key) {
+        return getStringOption(options, key, null);
+    }
+
+    static String getStringOption(Map<String, Object> options, String key, String defValue) {
+        return options.containsKey(key) && options.get(key) != null ? options.get(key).toString() : defValue;
+    }
+
+    public static Integer getIntOption(Map<String, Object> options, String key, Integer defValue) {
+        return options.containsKey(key) && options.get(key) != null ? Integer.parseInt(options.get(key).toString()) : defValue;
+    }
+
+    public static Boolean getBooleanOption(Map<String, Object> options, String key, Boolean defValue) {
+        return options.containsKey(key) && options.get(key) != null ? Boolean.parseBoolean(options.get(key).toString()) : defValue;
+    }
+
 
 }

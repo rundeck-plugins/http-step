@@ -167,6 +167,7 @@ public class HttpDescription  implements Describable {
                         .renderingOption(StringRenderingConstants.GROUP_NAME,"Print")
                         .build())
                 .property(PropertyBuilder.builder()
+                        .title("System Proxy Settings")
                         .booleanType("useSystemProxySettings")
                         .description("Choose whether to use proxy settings set on the JVM.")
                         .defaultValue("false")

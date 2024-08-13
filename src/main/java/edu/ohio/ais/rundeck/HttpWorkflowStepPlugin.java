@@ -24,6 +24,8 @@ import java.io.*;
 import java.util.*;
 
 import static edu.ohio.ais.rundeck.HttpBuilder.propertyResolver;
+import static edu.ohio.ais.rundeck.HttpBuilder.getIntOption;
+import static edu.ohio.ais.rundeck.HttpBuilder.getStringOption;
 
 
 /**
@@ -77,11 +79,11 @@ public class HttpWorkflowStepPlugin implements StepPlugin, Describable, ProxySec
         );
 
         // Parse out the options
-        String remoteUrl = options.containsKey("remoteUrl") ? options.get("remoteUrl").toString() : null;
-        String method = options.containsKey("method") ? options.get("method").toString() : null;
-        Integer timeout = options.containsKey("timeout") ? Integer.parseInt(options.get("timeout").toString()) : DEFAULT_TIMEOUT;
-        String headers = options.containsKey("headers") ? options.get("headers").toString() : null;
-        String body = options.containsKey("body") ? options.get("body").toString() : null;
+        String remoteUrl = getStringOption(options, "remoteUrl");
+        String method = getStringOption(options, "method");
+        Integer timeout =getIntOption(options,"timeout", DEFAULT_TIMEOUT);
+        String headers = getStringOption(options, "headers");
+        String body = getStringOption(options, "body");
 
         if(remoteUrl == null || method == null) {
             throw new StepException("Remote URL and Method are required.", StepFailureReason.ConfigurationFailure);
