@@ -491,18 +491,54 @@ public class HttpBuilder {
         }
     }
 
-    static  String getStringOption(Map<String, Object> options, String key) {
+    /**
+     * Retrieves a string value from the options map.
+     * If the key does not exist or the value is null, it returns null.
+     *
+     * @param options the map containing option keys and values
+     * @param key     the key whose associated value is to be returned
+     * @return the string value associated with the specified key, or null if the key does not exist or the value is null
+     */
+    static String getStringOption(Map<String, Object> options, String key) {
         return getStringOption(options, key, null);
     }
 
+    /**
+     * Retrieves a string value from the options map.
+     * If the key does not exist or the value is null, it returns the specified default value.
+     *
+     * @param options  the map containing option keys and values
+     * @param key      the key whose associated value is to be returned
+     * @param defValue the default value to return if the key does not exist or the value is null
+     * @return the string value associated with the specified key, or the default value if the key does not exist or the value is null
+     */
     static String getStringOption(Map<String, Object> options, String key, String defValue) {
         return options.containsKey(key) && options.get(key) != null ? options.get(key).toString() : defValue;
     }
 
+    /**
+     * Retrieves an integer value from the options map.
+     * If the key does not exist or the value is null, it returns the specified default value.
+     *
+     * @param options  the map containing option keys and values
+     * @param key      the key whose associated value is to be returned
+     * @param defValue the default value to return if the key does not exist or the value is null
+     * @return the integer value associated with the specified key, or the default value if the key does not exist or the value is null
+     * @throws NumberFormatException if the value cannot be parsed as an integer
+     */
     public static Integer getIntOption(Map<String, Object> options, String key, Integer defValue) {
         return options.containsKey(key) && options.get(key) != null ? Integer.parseInt(options.get(key).toString()) : defValue;
     }
 
+    /**
+     * Retrieves a boolean value from the options map.
+     * If the key does not exist or the value is null, it returns the specified default value.
+     *
+     * @param options  the map containing option keys and values
+     * @param key      the key whose associated value is to be returned
+     * @param defValue the default value to return if the key does not exist or the value is null
+     * @return the boolean value associated with the specified key, or the default value if the key does not exist or the value is null
+     */
     public static Boolean getBooleanOption(Map<String, Object> options, String key, Boolean defValue) {
         return options.containsKey(key) && options.get(key) != null ? Boolean.parseBoolean(options.get(key).toString()) : defValue;
     }
