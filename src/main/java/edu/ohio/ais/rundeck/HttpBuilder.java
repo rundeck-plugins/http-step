@@ -89,7 +89,7 @@ public class HttpBuilder {
     }
 
 
-    public CloseableHttpClient getHttpClient(Map<String, Object> options) throws GeneralSecurityException {
+    public CloseableHttpClient getHttpClient(Map<String, Object> options) throws GeneralSecurityException, StepException {
         HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
 
         httpClientBuilder.disableAuthCaching();
@@ -111,13 +111,25 @@ public class HttpBuilder {
         }
         if(getBooleanOption(options, "useSystemProxySettings", false) && !getBooleanOption(options, "proxySettings", false)) {
             log.log(5, "Using proxy settings set on system");
-            HttpHost proxy = new HttpHost(System.getProperty("http.proxyHost"), Integer.parseInt(System.getProperty("http.proxyPort")), "http");
+            String proxyHost = System.getProperty("http.proxyHost");
+            String proxyPort = System.getProperty("http.proxyPort");
+            if (proxyPort.isEmpty() || proxyHost.isEmpty()) {
+                throw new StepException("proxyHost and proxyPort are required to use System Proxy Settings", StepFailureReason.ConfigurationFailure);
+            }
+            HttpHost proxy = new HttpHost(proxyHost, Integer.parseInt(proxyPort), "http");
             httpClientBuilder.setProxy(proxy);
         }
-        if(getBooleanOption(options, "proxySettings", false)){
-            log.log(5, "proxy IP set in job: " + options.get("proxyIP").toString());
+        if (getBooleanOption(options, "proxySettings", false)) {
+            String proxyIP = getStringOption(options, "proxyIP", "");
+            String proxyPort = getStringOption(options, "proxyPort", "");
 
-            HttpHost proxy = new HttpHost(options.get("proxyIP").toString(), Integer.parseInt((String)options.get("proxyPort")), "http");
+            if (proxyIP.isEmpty() || proxyPort.isEmpty()) {
+                throw new StepException("Proxy IP and Proxy Port are required to use Proxy Settings.", StepFailureReason.ConfigurationFailure);
+            }
+
+            log.log(5, "proxy IP set in job: " + proxyIP);
+            log.log(5, "proxy Port set in job: " + proxyPort);
+            HttpHost proxy = new HttpHost(proxyIP, Integer.parseInt(proxyPort), "http");
             httpClientBuilder.setProxy(proxy);
         }
 
