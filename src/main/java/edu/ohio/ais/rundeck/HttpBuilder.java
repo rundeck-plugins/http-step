@@ -4,6 +4,7 @@ import com.dtolabs.rundeck.core.execution.workflow.steps.FailureReason;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepException;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepFailureReason;
 import com.dtolabs.rundeck.core.storage.ResourceMeta;
+import com.dtolabs.rundeck.core.utils.IPropertyLookup;
 import com.dtolabs.rundeck.plugins.PluginLogger;
 import com.dtolabs.rundeck.plugins.step.PluginStepContext;
 import com.google.gson.Gson;
@@ -88,13 +89,14 @@ public class HttpBuilder {
     }
 
 
-    public CloseableHttpClient getHttpClient(Map<String, Object> options) throws GeneralSecurityException {
+    public CloseableHttpClient getHttpClient(Map<String, Object> options) throws GeneralSecurityException, StepException {
         HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
 
         httpClientBuilder.disableAuthCaching();
         httpClientBuilder.disableAutomaticRetries();
 
-        if(options.containsKey("sslVerify") && !Boolean.parseBoolean(options.get("sslVerify").toString())) {
+
+        if(!getBooleanOption(options, "sslVerify", true)) {
             log.log(5,"Disabling all SSL certificate verification.");
             SSLContextBuilder sslContextBuilder = new SSLContextBuilder();
             sslContextBuilder.loadTrustMaterial(null, new TrustStrategy() {
@@ -107,8 +109,27 @@ public class HttpBuilder {
             httpClientBuilder.setSSLHostnameVerifier(new NoopHostnameVerifier());
             httpClientBuilder.setSSLContext(sslContextBuilder.build());
         }
-        if(options.containsKey("proxySettings") && Boolean.parseBoolean(options.get("proxySettings").toString())){
-            HttpHost proxy = new HttpHost(options.get("proxyIP").toString(), Integer.valueOf((String)options.get("proxyPort")), "http");
+        if(getBooleanOption(options, "useSystemProxySettings", false) && !getBooleanOption(options, "proxySettings", false)) {
+            log.log(5, "Using proxy settings set on system");
+            String proxyHost = System.getProperty("http.proxyHost");
+            String proxyPort = System.getProperty("http.proxyPort");
+            if (proxyPort.isEmpty() || proxyHost.isEmpty()) {
+                throw new StepException("proxyHost and proxyPort are required to use System Proxy Settings", StepFailureReason.ConfigurationFailure);
+            }
+            HttpHost proxy = new HttpHost(proxyHost, Integer.parseInt(proxyPort), "http");
+            httpClientBuilder.setProxy(proxy);
+        }
+        if (getBooleanOption(options, "proxySettings", false)) {
+            String proxyIP = getStringOption(options, "proxyIP", "");
+            String proxyPort = getStringOption(options, "proxyPort", "");
+
+            if (proxyIP.isEmpty() || proxyPort.isEmpty()) {
+                throw new StepException("Proxy IP and Proxy Port are required to use Proxy Settings.", StepFailureReason.ConfigurationFailure);
+            }
+
+            log.log(5, "proxy IP set in job: " + proxyIP);
+            log.log(5, "proxy Port set in job: " + proxyPort);
+            HttpHost proxy = new HttpHost(proxyIP, Integer.parseInt(proxyPort), "http");
             httpClientBuilder.setProxy(proxy);
         }
 
@@ -132,19 +153,19 @@ public class HttpBuilder {
         try {
             response = this.getHttpClient(options).execute(request);
 
-            if(options.containsKey("printResponseCode") && Boolean.parseBoolean(options.get("printResponseCode").toString())) {
+            if(getBooleanOption(options,"printResponseCode",false)) {
                 String responseCode = response.getStatusLine().toString();
                 log.log(2, "Response Code: " + responseCode);
             }
 
             //print the response content
-            if(options.containsKey("printResponse") && Boolean.parseBoolean(options.get("printResponse").toString())) {
+            if(getBooleanOption(options,"printResponse",false)) {
                 output = getOutputForResponse(this.prettyPrint(response));
                 //print response
                 log.log(2, output);
             }
 
-            if(options.containsKey("printResponseToFile") && Boolean.parseBoolean(options.get("printResponseToFile").toString())){
+            if(getBooleanOption(options,"printResponseToFile",false)){
                 File file = new File(options.get("file").toString());
                 BufferedWriter writer = new BufferedWriter(new FileWriter(file));
                 if( output.isEmpty() ){
@@ -158,7 +179,7 @@ public class HttpBuilder {
             }
 
             //check response status
-            if(options.containsKey("checkResponseCode") && Boolean.parseBoolean(options.get("checkResponseCode").toString())) {
+            if(getBooleanOption(options,"checkResponseCode",false)) {
 
                 if(options.containsKey("responseCode")){
                     int responseCode = Integer.valueOf( (String) options.get("responseCode"));
@@ -335,14 +356,14 @@ public class HttpBuilder {
 
 
     String getAuthHeader(PluginStepContext pluginStepContext,  Map<String, Object> options) throws StepException {
-        String authentication = options.containsKey("authentication") ? options.get("authentication").toString() : AUTH_NONE;
+        String authentication = getStringOption(options, "authentication",AUTH_NONE);
         //moving the password to the key storage
         String password=null;
         String authHeader = null;
 
 
         if(options.containsKey("password") ){
-            String passwordRaw = options.containsKey("password") ? options.get("password").toString() : null;
+            String passwordRaw = getStringOption(options, "password");
             //to avid the test error add a try-catch
             //if it didn't find the key path, it will use the password directly
             byte[] content = SecretBundleUtil.getStoragePassword(pluginStepContext.getExecutionContext(),passwordRaw );
@@ -356,7 +377,7 @@ public class HttpBuilder {
 
         if(authentication.equals(AUTH_BASIC)) {
             // Setup the authentication header for BASIC
-            String username = options.containsKey("username") ? options.get("username").toString() : null;
+            String username = getStringOption(options, "username");
 
             if(username == null || password == null) {
                 throw new StepException("Username and password not provided for BASIC Authentication",
@@ -369,9 +390,12 @@ public class HttpBuilder {
             authHeader = "Basic " + com.dtolabs.rundeck.core.utils.Base64.encode(authHeader);
         } else if (authentication.equals(AUTH_OAUTH2)) {
             // Get an OAuth token and setup the auth header for OAuth
-            String tokenEndpoint = options.containsKey("oauthTokenEndpoint") ? options.get("oauthTokenEndpoint").toString() : null;
-            String validateEndpoint = options.containsKey("oauthValidateEndpoint") ? options.get("oauthValidateEndpoint").toString() : null;
-            String clientId = options.containsKey("username") ? options.get("username").toString() : null;
+            String tokenEndpoint = getStringOption(options, "oauthTokenEndpoint");
+            String validateEndpoint = getStringOption(options, "oauthValidateEndpoint");
+            String clientId = getStringOption(options, "username");
+
+
+
             String clientSecret = password;
 
 
@@ -458,6 +482,77 @@ public class HttpBuilder {
                 request.setHeader(key, value);
             }
         }
+    }
+
+    static void propertyResolver(String pluginType, String property, Map<String,Object> Configuration, PluginStepContext context, String SERVICE_PROVIDER_NAME) {
+
+        String projectPrefix = "project.plugin." + pluginType + "." + SERVICE_PROVIDER_NAME + ".";
+        String frameworkPrefix = "framework.plugin." + pluginType + "." + SERVICE_PROVIDER_NAME + ".";
+
+        Map<String,String> projectProperties = context.getFramework().getFrameworkProjectMgr().getFrameworkProject(context.getFrameworkProject()).getProperties();
+        IPropertyLookup frameworkProperties = context.getFramework().getPropertyLookup();
+
+        if(!Configuration.containsKey(property) && projectProperties.containsKey(projectPrefix + property)) {
+
+            Configuration.put(property, projectProperties.get(projectPrefix + property));
+
+        } else if (!Configuration.containsKey(property) && frameworkProperties.hasProperty(frameworkPrefix + property)) {
+
+            Configuration.put(property, frameworkProperties.getProperty(frameworkPrefix + property));
+
+        }
+    }
+
+    /**
+     * Retrieves a string value from the options map.
+     * If the key does not exist or the value is null, it returns null.
+     *
+     * @param options the map containing option keys and values
+     * @param key     the key whose associated value is to be returned
+     * @return the string value associated with the specified key, or null if the key does not exist or the value is null
+     */
+    static String getStringOption(Map<String, Object> options, String key) {
+        return getStringOption(options, key, null);
+    }
+
+    /**
+     * Retrieves a string value from the options map.
+     * If the key does not exist or the value is null, it returns the specified default value.
+     *
+     * @param options  the map containing option keys and values
+     * @param key      the key whose associated value is to be returned
+     * @param defValue the default value to return if the key does not exist or the value is null
+     * @return the string value associated with the specified key, or the default value if the key does not exist or the value is null
+     */
+    static String getStringOption(Map<String, Object> options, String key, String defValue) {
+        return options.containsKey(key) && options.get(key) != null ? options.get(key).toString() : defValue;
+    }
+
+    /**
+     * Retrieves an integer value from the options map.
+     * If the key does not exist or the value is null, it returns the specified default value.
+     *
+     * @param options  the map containing option keys and values
+     * @param key      the key whose associated value is to be returned
+     * @param defValue the default value to return if the key does not exist or the value is null
+     * @return the integer value associated with the specified key, or the default value if the key does not exist or the value is null
+     * @throws NumberFormatException if the value cannot be parsed as an integer
+     */
+    public static Integer getIntOption(Map<String, Object> options, String key, Integer defValue) {
+        return options.containsKey(key) && options.get(key) != null ? Integer.parseInt(options.get(key).toString()) : defValue;
+    }
+
+    /**
+     * Retrieves a boolean value from the options map.
+     * If the key does not exist or the value is null, it returns the specified default value.
+     *
+     * @param options  the map containing option keys and values
+     * @param key      the key whose associated value is to be returned
+     * @param defValue the default value to return if the key does not exist or the value is null
+     * @return the boolean value associated with the specified key, or the default value if the key does not exist or the value is null
+     */
+    public static Boolean getBooleanOption(Map<String, Object> options, String key, Boolean defValue) {
+        return options.containsKey(key) && options.get(key) != null ? Boolean.parseBoolean(options.get(key).toString()) : defValue;
     }
 
 

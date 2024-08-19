@@ -1,11 +1,15 @@
 package edu.ohio.ais.rundeck;
 
+import com.dtolabs.rundeck.core.common.Framework;
+import com.dtolabs.rundeck.core.common.FrameworkProject;
+import com.dtolabs.rundeck.core.common.FrameworkProjectMgr;
 import com.dtolabs.rundeck.core.common.INodeEntry;
 import com.dtolabs.rundeck.core.execution.ExecutionContext;
 import com.dtolabs.rundeck.core.execution.ExecutionLogger;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepFailureReason;
 import com.dtolabs.rundeck.core.execution.workflow.steps.node.NodeStepException;
 import com.dtolabs.rundeck.core.plugins.configuration.Description;
+import com.dtolabs.rundeck.core.utils.IPropertyLookup;
 import com.dtolabs.rundeck.plugins.PluginLogger;
 import com.dtolabs.rundeck.plugins.step.PluginStepContext;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -27,6 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.*;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
 public class HttpWorkflowNodeStepPluginTest {
@@ -176,6 +181,20 @@ public class HttpWorkflowNodeStepPluginTest {
         when(pluginContext.getLogger()).thenReturn(pluginLogger);
         when(pluginContext.getExecutionContext()).thenReturn(executionContext);
 
+        // Mock the necessary objects
+        Framework framework = Mockito.mock(Framework.class);
+        FrameworkProjectMgr frameworkProjectMgr = Mockito.mock(FrameworkProjectMgr.class);
+        FrameworkProject frameworkProject = Mockito.mock(FrameworkProject.class);
+        IPropertyLookup frameworkProperties = Mockito.mock(IPropertyLookup.class);
+
+        // Mock the interactions
+        when(pluginContext.getFramework()).thenReturn(framework);
+        when(framework.getFrameworkProjectMgr()).thenReturn(frameworkProjectMgr);
+        when(frameworkProjectMgr.getFrameworkProject(anyString())).thenReturn(frameworkProject);
+        when(frameworkProject.getProperties()).thenReturn(new HashMap<String, String>());
+        when(framework.getPropertyLookup()).thenReturn(frameworkProperties);
+        when(frameworkProperties.hasProperty(anyString())).thenReturn(true);
+
         dataContext =new HashMap<>();
         when(pluginContext.getDataContext()).thenReturn(dataContext);
 
@@ -316,6 +335,7 @@ public class HttpWorkflowNodeStepPluginTest {
 
         options.put("remoteUrl", OAuthClientTest.BASE_URI + ERROR_URL_401);
         options.put("method", "GET");
+        options.put("authentication", HttpBuilder.AUTH_BASIC);
 
         this.plugin.executeNodeStep(pluginContext, options, node );
     }

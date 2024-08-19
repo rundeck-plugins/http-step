@@ -2,6 +2,7 @@ package edu.ohio.ais.rundeck;
 
 import com.dtolabs.rundeck.core.plugins.configuration.Describable;
 import com.dtolabs.rundeck.core.plugins.configuration.Description;
+import com.dtolabs.rundeck.core.plugins.configuration.PropertyScope;
 import com.dtolabs.rundeck.core.plugins.configuration.StringRenderingConstants;
 import com.dtolabs.rundeck.plugins.util.DescriptionBuilder;
 import com.dtolabs.rundeck.plugins.util.PropertyBuilder;
@@ -164,6 +165,13 @@ public class HttpDescription  implements Describable {
                         .description("Select to print the HTTP response code and status.")
                         .defaultValue("false")
                         .renderingOption(StringRenderingConstants.GROUP_NAME,"Print")
+                        .build())
+                .property(PropertyBuilder.builder()
+                        .title("System Proxy Settings")
+                        .booleanType("useSystemProxySettings")
+                        .description("Choose whether to use proxy settings set on the JVM.")
+                        .defaultValue("false")
+                        .scope(PropertyScope.Project)
                         .build())
                 .build();
     }

@@ -23,6 +23,10 @@ import org.apache.http.entity.ByteArrayEntity;
 import java.io.*;
 import java.util.*;
 
+import static edu.ohio.ais.rundeck.HttpBuilder.propertyResolver;
+import static edu.ohio.ais.rundeck.HttpBuilder.getIntOption;
+import static edu.ohio.ais.rundeck.HttpBuilder.getStringOption;
+
 
 /**
  * Main implementation of the plugin. This will handle fetching
@@ -69,12 +73,17 @@ public class HttpWorkflowStepPlugin implements StepPlugin, Describable, ProxySec
     public void executeStep(PluginStepContext pluginStepContext, Map<String, Object> options) throws StepException {
         PluginLogger log = pluginStepContext.getLogger();
 
+        Description description = new HttpDescription(SERVICE_PROVIDER_NAME, "HTTP Request Node Step", "Performs an HTTP request with or without authentication (per node)").getDescription();
+        description.getProperties().forEach(prop->
+                propertyResolver("WorkflowStep",prop.getName(), options, pluginStepContext, SERVICE_PROVIDER_NAME)
+        );
+
         // Parse out the options
-        String remoteUrl = options.containsKey("remoteUrl") ? options.get("remoteUrl").toString() : null;
-        String method = options.containsKey("method") ? options.get("method").toString() : null;
-        Integer timeout = options.containsKey("timeout") ? Integer.parseInt(options.get("timeout").toString()) : DEFAULT_TIMEOUT;
-        String headers = options.containsKey("headers") ? options.get("headers").toString() : null;
-        String body = options.containsKey("body") ? options.get("body").toString() : null;
+        String remoteUrl = getStringOption(options, "remoteUrl");
+        String method = getStringOption(options, "method");
+        Integer timeout =getIntOption(options,"timeout", DEFAULT_TIMEOUT);
+        String headers = getStringOption(options, "headers");
+        String body = getStringOption(options, "body");
 
         if(remoteUrl == null || method == null) {
             throw new StepException("Remote URL and Method are required.", StepFailureReason.ConfigurationFailure);

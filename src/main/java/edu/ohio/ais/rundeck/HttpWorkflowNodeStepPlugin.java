@@ -5,16 +5,20 @@ import com.dtolabs.rundeck.core.dispatcher.DataContextUtils;
 import com.dtolabs.rundeck.core.execution.ExecutionContext;
 import com.dtolabs.rundeck.core.execution.proxy.ProxySecretBundleCreator;
 import com.dtolabs.rundeck.core.execution.proxy.SecretBundle;
+import com.dtolabs.rundeck.core.execution.utils.ResolverUtil;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepException;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepFailureReason;
 import com.dtolabs.rundeck.core.execution.workflow.steps.node.NodeStepException;
 import com.dtolabs.rundeck.core.plugins.Plugin;
 import com.dtolabs.rundeck.core.plugins.configuration.Describable;
 import com.dtolabs.rundeck.core.plugins.configuration.Description;
+import com.dtolabs.rundeck.core.utils.IPropertyLookup;
 import com.dtolabs.rundeck.plugins.PluginLogger;
 import com.dtolabs.rundeck.plugins.ServiceNameConstants;
+import com.dtolabs.rundeck.plugins.descriptions.PluginProperty;
 import com.dtolabs.rundeck.plugins.step.NodeStepPlugin;
 import com.dtolabs.rundeck.plugins.step.PluginStepContext;
+import com.dtolabs.rundeck.plugins.util.DescriptionBuilder;
 import edu.ohio.ais.rundeck.util.OAuthClient;
 import edu.ohio.ais.rundeck.util.SecretBundleUtil;
 import org.apache.http.HttpEntity;
@@ -24,6 +28,10 @@ import org.apache.http.entity.ByteArrayEntity;
 
 import java.io.UnsupportedEncodingException;
 import java.util.*;
+
+import static edu.ohio.ais.rundeck.HttpBuilder.propertyResolver;
+import static edu.ohio.ais.rundeck.HttpBuilder.getIntOption;
+import static edu.ohio.ais.rundeck.HttpBuilder.getStringOption;
 
 @Plugin(name = HttpWorkflowNodeStepPlugin.SERVICE_PROVIDER_NAME, service = ServiceNameConstants.WorkflowNodeStep)
 public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable, ProxySecretBundleCreator {
@@ -39,7 +47,6 @@ public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable, 
      * request for the URL, not OAuth authentication.
      */
     public static final Integer DEFAULT_TIMEOUT = 30*1000;
-
 
     /**
      * Synchronized map of all existing OAuth clients. This is indexed by
@@ -58,13 +65,17 @@ public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable, 
     public void executeNodeStep(PluginStepContext context, Map<String, Object> configuration, INodeEntry entry) throws NodeStepException {
         PluginLogger log = context.getLogger();
 
-        // Parse out the options
-        String remoteUrl = configuration.containsKey("remoteUrl") ? configuration.get("remoteUrl").toString() : null;
-        String method = configuration.containsKey("method") ? configuration.get("method").toString() : null;
+        Description description = new HttpDescription(SERVICE_PROVIDER_NAME, "HTTP Request Node Step", "Performs an HTTP request with or without authentication (per node)").getDescription();
+        description.getProperties().forEach(prop->
+            propertyResolver("WorkflowNodeStep", prop.getName(), configuration, context, SERVICE_PROVIDER_NAME)
+        );
 
-        Integer timeout = configuration.containsKey("timeout") ? Integer.parseInt(configuration.get("timeout").toString()) : DEFAULT_TIMEOUT;
-        String headers = configuration.containsKey("headers") ? configuration.get("headers").toString() : null;
-        String body = configuration.containsKey("body") ? configuration.get("body").toString() : null;
+        // Parse out the options
+        String remoteUrl = getStringOption(configuration, "remoteUrl");
+        String method = getStringOption(configuration, "method");
+        Integer timeout =getIntOption(configuration,"timeout", DEFAULT_TIMEOUT);
+        String headers = getStringOption(configuration, "headers");
+        String body = getStringOption(configuration, "body");
 
         log.log(5, "remoteUrl: " + remoteUrl);
         log.log(5, "method: " + method);
@@ -146,4 +157,5 @@ public class HttpWorkflowNodeStepPlugin implements NodeStepPlugin, Describable, 
     public List<String> listSecretsPathWorkflowNodeStep(ExecutionContext context, INodeEntry node, Map<String, Object> configuration) {
         return SecretBundleUtil.getListSecrets(configuration);
     }
+
 }
