@@ -291,6 +291,34 @@ public class HttpWorkflowStepPluginTest {
 
         this.plugin.executeStep(pluginContext, options);
     }
+    @Test
+    public void willFailOn4xxWhenFailOnHttpErrorIsTrue() {
+        Map<String, Object> options = new HashMap<>();
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + ERROR_URL_401);
+        options.put("method", "GET");
+        options.put("failOnHttpError", true);
+
+        try {
+            this.plugin.executeStep(pluginContext, options);
+            fail("Expected StepException due to 401 and failOnHttpError=true");
+        } catch (StepException se) {
+            assertEquals(HttpBuilder.Reason.HTTPFailure, se.getFailureReason());
+        }
+    }
+    @Test
+    public void willFailOn5xxWhenFailOnHttpErrorIsTrue() {
+        Map<String, Object> options = new HashMap<>();
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + ERROR_URL_500);
+        options.put("method", "GET");
+        options.put("failOnHttpError", true);
+
+        try {
+            this.plugin.executeStep(pluginContext, options);
+            fail("Expected StepException due to 500 and failOnHttpError=true");
+        } catch (StepException se) {
+            assertEquals(HttpBuilder.Reason.HTTPFailure, se.getFailureReason());
+        }
+    }
 
     @Test(expected = StepException.class)
     public void canHandleBASICWrongAuthType() throws StepException {

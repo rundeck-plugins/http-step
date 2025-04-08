@@ -192,6 +192,17 @@ public class HttpBuilder {
                 }
 
             }
+            if(getBooleanOption(options, "failOnHttpError", true)) {
+                int statusCode = response.getStatusLine().getStatusCode();
+                if (statusCode >= 400) {
+                    String message = "HTTP request failed with status code: " + statusCode;
+                    String body = EntityUtils.toString(response.getEntity());
+                    if (!body.isEmpty()) {
+                        message += ": " + body;
+                    }
+                    throw new StepException(message, HttpBuilder.Reason.HTTPFailure);
+                }
+            }
 
             // Sometimes we may need to refresh our OAuth token.
             if(response.getStatusLine().getStatusCode() == OAuthClient.STATUS_AUTHORIZATION_REQUIRED) {
