@@ -292,32 +292,59 @@ public class HttpWorkflowStepPluginTest {
         this.plugin.executeStep(pluginContext, options);
     }
     @Test
-    public void willFailOn4xxWhenFailOnHttpErrorIsTrue() {
+    public void willPassWhenResponseCodeMatchesExact() throws StepException {
         Map<String, Object> options = new HashMap<>();
-        options.put("remoteUrl", OAuthClientTest.BASE_URI + ERROR_URL_401);
-        options.put("method", "GET");
-        options.put("failOnHttpError", true);
 
-        try {
-            this.plugin.executeStep(pluginContext, options);
-            fail("Expected StepException due to 401 and failOnHttpError=true");
-        } catch (StepException se) {
-            assertEquals(HttpBuilder.Reason.HTTPFailure, se.getFailureReason());
-        }
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + REMOTE_URL); // returns 200
+        options.put("method", "GET");
+        options.put("checkResponseCode", true);
+        options.put("responseCode", "200");
+
+        this.plugin.executeStep(pluginContext, options); // Should not throw
     }
     @Test
-    public void willFailOn5xxWhenFailOnHttpErrorIsTrue() {
+    public void willPassWhenResponseCodeInRange() throws StepException {
         Map<String, Object> options = new HashMap<>();
-        options.put("remoteUrl", OAuthClientTest.BASE_URI + ERROR_URL_500);
-        options.put("method", "GET");
-        options.put("failOnHttpError", true);
 
-        try {
-            this.plugin.executeStep(pluginContext, options);
-            fail("Expected StepException due to 500 and failOnHttpError=true");
-        } catch (StepException se) {
-            assertEquals(HttpBuilder.Reason.HTTPFailure, se.getFailureReason());
-        }
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + NO_CONTENT_URL); // returns 204
+        options.put("method", "GET");
+        options.put("checkResponseCode", true);
+        options.put("responseCode", "200-204");
+
+        this.plugin.executeStep(pluginContext, options); // Should not throw
+    }
+    @Test
+    public void willPassWhenResponseCodeMatchesPattern2xx() throws StepException {
+        Map<String, Object> options = new HashMap<>();
+
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + REMOTE_URL); // returns 200
+        options.put("method", "GET");
+        options.put("checkResponseCode", true);
+        options.put("responseCode", "2xx");
+
+        this.plugin.executeStep(pluginContext, options); // Should not throw
+    }
+    @Test
+    public void willPassWhenResponseCodeMatchesAnyInList() throws StepException {
+        Map<String, Object> options = new HashMap<>();
+
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + NO_CONTENT_URL); // returns 204
+        options.put("method", "GET");
+        options.put("checkResponseCode", true);
+        options.put("responseCode", "200,204-206");
+
+        this.plugin.executeStep(pluginContext, options); // Should not throw
+    }
+    @Test(expected = StepException.class)
+    public void willFailWhenResponseCodeDoesNotMatch() throws StepException {
+        Map<String, Object> options = new HashMap<>();
+
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + ERROR_URL_401); // returns 401
+        options.put("method", "GET");
+        options.put("checkResponseCode", true);
+        options.put("responseCode", "200,204,2xx");
+
+        this.plugin.executeStep(pluginContext, options); // Should throw
     }
 
     @Test(expected = StepException.class)

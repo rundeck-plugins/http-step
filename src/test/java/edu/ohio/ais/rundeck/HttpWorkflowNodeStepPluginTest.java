@@ -377,26 +377,6 @@ public class HttpWorkflowNodeStepPluginTest {
         this.plugin.executeNodeStep(pluginContext, options, node );
     }
 
-    @Test(expected = NodeStepException.class)
-    public void willFailOn4xxWhenFailOnHttpErrorIsTrue() throws NodeStepException {
-        Map<String, Object> options = new HashMap<>();
-        options.put("remoteUrl", OAuthClientTest.BASE_URI + ERROR_URL_401);
-        options.put("method", "GET");
-        options.put("failOnHttpError", true);
-
-        this.plugin.executeNodeStep(pluginContext, options, node);
-    }
-
-    @Test(expected = NodeStepException.class)
-    public void willFailOn5xxWhenFailOnHttpErrorIsTrue() throws NodeStepException {
-        Map<String, Object> options = new HashMap<>();
-        options.put("remoteUrl", OAuthClientTest.BASE_URI + ERROR_URL_500);
-        options.put("method", "GET");
-        options.put("failOnHttpError", true);
-
-        this.plugin.executeNodeStep(pluginContext, options, node);
-    }
-
     @Test
     public void canPrintNoContent() throws NodeStepException {
         Map<String, Object> options = new HashMap<>();
