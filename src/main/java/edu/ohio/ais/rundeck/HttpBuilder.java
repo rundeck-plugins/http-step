@@ -179,20 +179,45 @@ public class HttpBuilder {
             }
 
             //check response status
-            if(getBooleanOption(options,"checkResponseCode",false)) {
+            if (getBooleanOption(options, "checkResponseCode", false)) {
+                int actualCode = response.getStatusLine().getStatusCode();
+                String responseCodeStr = getStringOption(options, "responseCode");
 
-                if(options.containsKey("responseCode")){
-                    int responseCode = Integer.valueOf( (String) options.get("responseCode"));
+                if (responseCodeStr != null) {
+                    boolean matched = false;
 
-                    if(response.getStatusLine().getStatusCode()!=responseCode){
-                        String message = "Error, the expected response code didn't fix, the value expected was " + responseCode + " and the response code was " +  response.getStatusLine().getStatusCode();
-                        throw new StepException(message, HttpBuilder.Reason.HTTPFailure);
+                    for (String codePattern : responseCodeStr.split(",")) {
+                        codePattern = codePattern.trim();
+
+                        if (codePattern.matches("\\d{3}")) {
+                            if (actualCode == Integer.parseInt(codePattern)) {
+                                matched = true;
+                                break;
+                            }
+                        } else if (codePattern.matches("\\d{3}-\\d{3}")) {
+                            String[] parts = codePattern.split("-");
+                            int start = Integer.parseInt(parts[0]);
+                            int end = Integer.parseInt(parts[1]);
+                            if (actualCode >= start && actualCode <= end) {
+                                matched = true;
+                                break;
+                            }
+                        } else if (codePattern.matches("\\dxx")) {
+                            int hundreds = Integer.parseInt(codePattern.substring(0, 1)) * 100;
+                            if (actualCode >= hundreds && actualCode < hundreds + 100) {
+                                matched = true;
+                                break;
+                            }
+                        }
                     }
 
+                    if (!matched) {
+                        throw new StepException("Unexpected response code: " + actualCode, Reason.HTTPFailure);
+                    }
                 }
-
             }
-            if(getBooleanOption(options, "failOnHttpError", true)) {
+
+            if(getBooleanOption(options, "failOnHttpError", false)) {
                 int statusCode = response.getStatusLine().getStatusCode();
                 if (statusCode >= 400) {
                     String message = "HTTP request failed with status code: " + statusCode;
