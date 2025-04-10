@@ -7,6 +7,7 @@ import com.dtolabs.rundeck.core.execution.ExecutionContext;
 import com.dtolabs.rundeck.core.execution.workflow.steps.PluginStepContextImpl;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepException;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepFailureReason;
+import com.dtolabs.rundeck.core.execution.workflow.steps.node.NodeStepException;
 import com.dtolabs.rundeck.core.plugins.configuration.Description;
 import com.dtolabs.rundeck.core.utils.IPropertyLookup;
 import com.dtolabs.rundeck.plugins.PluginLogger;
@@ -378,7 +379,7 @@ public class HttpWorkflowStepPluginTest {
         }
     }
 
-    @Test()
+    @Test(expected = StepException.class)
     public void canCallOAuthEndpointWithExpiredToken() throws StepException {
         this.plugin.oauthClients.put(OAUTH_CLIENT_MAP_KEY, this.oAuthClientTest.setupClient(OAuthClientTest.ACCESS_TOKEN_EXPIRED));
 
