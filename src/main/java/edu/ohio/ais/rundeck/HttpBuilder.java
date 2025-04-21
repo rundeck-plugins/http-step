@@ -189,7 +189,7 @@ public class HttpBuilder {
 
                 // But only if we actually use OAuth for authentication
                 if(options.containsKey("authentication")) {
-                    if(options.get("authentication").toString().equals(AUTH_BASIC)) {
+                    if(AUTH_BASIC.equals(options.get("authentication"))) { // comparing this way avoids possible NPEs
                         throw new StepException("Remote URL requires authentication but does not support BASIC.", StepFailureReason.ConfigurationFailure);
                     } else if(options.get("authentication").toString().equals(AUTH_OAUTH2)) {
                         log.log(5,"Attempting to refresh OAuth token and try again...");
@@ -546,6 +546,8 @@ public class HttpBuilder {
      *   <li>Comma-separated combinations of any of the above (e.g., "200,204-206,2xx")</li>
      * </ul>
      *
+     * Malformed entries are ignored with a warning log.
+     *
      * @param actualCode the HTTP response code returned by the server
      * @param responseCodeStr the expected response codes or patterns, as a comma-separated string
      * @return true if the actualCode matches any pattern or value in responseCodeStr; false otherwise
@@ -558,27 +560,33 @@ public class HttpBuilder {
         for (String codePattern : responseCodeStr.split(",")) {
             codePattern = codePattern.trim();
 
-            if (codePattern.matches("\\d{3}")) {
-                if (actualCode == Integer.parseInt(codePattern)) {
-                    return true;
+            try {
+                if (codePattern.matches("\\d{3}")) {
+                    if (actualCode == Integer.parseInt(codePattern)) {
+                        return true;
+                    }
+                } else if (codePattern.matches("\\d{3}-\\d{3}")) {
+                    String[] parts = codePattern.split("-");
+                    int start = Integer.parseInt(parts[0]);
+                    int end = Integer.parseInt(parts[1]);
+                    if (actualCode >= start && actualCode <= end) {
+                        return true;
+                    }
+                } else if (codePattern.matches("\\dxx")) {
+                    int hundreds = Integer.parseInt(codePattern.substring(0, 1)) * 100;
+                    if (actualCode >= hundreds && actualCode < hundreds + 100) {
+                        return true;
+                    }
                 }
-            } else if (codePattern.matches("\\d{3}-\\d{3}")) {
-                String[] parts = codePattern.split("-");
-                int start = Integer.parseInt(parts[0]);
-                int end = Integer.parseInt(parts[1]);
-                if (actualCode >= start && actualCode <= end) {
-                    return true;
-                }
-            } else if (codePattern.matches("\\dxx")) {
-                int hundreds = Integer.parseInt(codePattern.substring(0, 1)) * 100;
-                if (actualCode >= hundreds && actualCode < hundreds + 100) {
-                    return true;
-                }
+            } catch (NumberFormatException ex) {
+                // Log at a low level
+                System.err.println("Warning: Ignoring malformed responseCode entry: '" + codePattern + "'");
             }
         }
 
         return false;
     }
+
 
 
     /**
@@ -593,7 +601,7 @@ public class HttpBuilder {
      *
      * @param response the {@link HttpResponse} returned by the HTTP client
      * @param actualCode the actual HTTP status code from the response
-     * @param responseCodeStr the user-defined expected response code(s), which may include
+     * @param responseCodeStr the user-defined expected response code(s), which may include comma-separated values, ranges (e.g. "200-206"), or wildcard groups (e.g. "2xx").
      * @throws IOException if an error occurs reading the response body
      * @throws StepException if the response code is unexpected or represents a failure
      */

@@ -106,7 +106,8 @@ public class HttpDescription  implements Describable {
                 .property(PropertyBuilder.builder()
                         .string("responseCode")
                         .title("Expected Response Code")
-                        .description("Expected HTTP response code(s). Use single code (e.g. 200), multiple (e.g. 200,204), ranges (e.g. 200-206), or patterns like 2xx. The step will fail otherwise.")
+                        .description("Specify one or more expected response codes. Supports exact codes (e.g. 200), ranges (e.g. 200-206), and patterns (e.g. 2xx, 4xx). " +
+                                "You can combine multiple formats using commas (e.g. 200,204-206,2xx). ")
                         .required(false)
                         .renderingOption(StringRenderingConstants.GROUP_NAME,"Check Response")
                         .build())
