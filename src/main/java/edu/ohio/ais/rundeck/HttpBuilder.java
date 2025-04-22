@@ -179,19 +179,9 @@ public class HttpBuilder {
             }
 
             //check response status
-            if(getBooleanOption(options,"checkResponseCode",false)) {
-
-                if(options.containsKey("responseCode")){
-                    int responseCode = Integer.valueOf( (String) options.get("responseCode"));
-
-                    if(response.getStatusLine().getStatusCode()!=responseCode){
-                        String message = "Error, the expected response code didn't fix, the value expected was " + responseCode + " and the response code was " +  response.getStatusLine().getStatusCode();
-                        throw new StepException(message, HttpBuilder.Reason.HTTPFailure);
-                    }
-
-                }
-
-            }
+            int actualCode = response.getStatusLine().getStatusCode();
+            String responseCodeStr = getStringOption(options, "responseCode");
+            validateResponseCodeOrThrow(response, actualCode, responseCodeStr);
 
             // Sometimes we may need to refresh our OAuth token.
             if(response.getStatusLine().getStatusCode() == OAuthClient.STATUS_AUTHORIZATION_REQUIRED) {
@@ -199,7 +189,7 @@ public class HttpBuilder {
 
                 // But only if we actually use OAuth for authentication
                 if(options.containsKey("authentication")) {
-                    if(options.get("authentication").toString().equals(AUTH_BASIC)) {
+                    if(AUTH_BASIC.equals(options.get("authentication"))) { // comparing this way avoids possible NPEs
                         throw new StepException("Remote URL requires authentication but does not support BASIC.", StepFailureReason.ConfigurationFailure);
                     } else if(options.get("authentication").toString().equals(AUTH_OAUTH2)) {
                         log.log(5,"Attempting to refresh OAuth token and try again...");
@@ -238,20 +228,9 @@ public class HttpBuilder {
                     throw new StepException("Remote URL requires authentication.", StepFailureReason.ConfigurationFailure);
                 }
             } else if(response.getStatusLine().getStatusCode() >= 400) {
-                String message = "Error when sending request";
+                responseCodeStr = getStringOption(options, "responseCode");
+                validateResponseCodeOrThrow(response, actualCode, responseCodeStr);
 
-                if(response.getStatusLine().getReasonPhrase().length() > 0) {
-                    message += ": " + response.getStatusLine().getReasonPhrase();
-                } else {
-                    message += ": " + Integer.toString(response.getStatusLine().getStatusCode()) + " Error";
-                }
-
-                String body = EntityUtils.toString(response.getEntity());
-                if(body.length() > 0) {
-                    message += ": " + body;
-                }
-
-                throw new StepException(message, HttpBuilder.Reason.HTTPFailure);
             }
         } catch (IOException e) {
             StepException ese = new StepException("Error when sending request: " + e.getMessage(), HttpBuilder.Reason.HTTPFailure);
@@ -554,6 +533,100 @@ public class HttpBuilder {
     public static Boolean getBooleanOption(Map<String, Object> options, String key, Boolean defValue) {
         return options.containsKey(key) && options.get(key) != null ? Boolean.parseBoolean(options.get(key).toString()) : defValue;
     }
+
+    /**
+     * Checks whether the given actual HTTP status code matches any of the values or patterns
+     * defined in the responseCode string.
+     *
+     * <p>The responseCode string may contain:</p>
+     * <ul>
+     *   <li>Single codes (e.g., "200")</li>
+     *   <li>Ranges (e.g., "200-206")</li>
+     *   <li>Wildcard groups (e.g., "2xx", "4xx")</li>
+     *   <li>Comma-separated combinations of any of the above (e.g., "200,204-206,2xx")</li>
+     * </ul>
+     *
+     * Malformed entries are ignored with a warning log.
+     *
+     * @param actualCode the HTTP response code returned by the server
+     * @param responseCodeStr the expected response codes or patterns, as a comma-separated string
+     * @return true if the actualCode matches any pattern or value in responseCodeStr; false otherwise
+     */
+    public static boolean isExpectedResponseCode(int actualCode, String responseCodeStr) {
+        if (responseCodeStr == null || responseCodeStr.trim().isEmpty()) {
+            return false;
+        }
+
+        for (String codePattern : responseCodeStr.split(",")) {
+            codePattern = codePattern.trim();
+
+            try {
+                if (codePattern.matches("\\d{3}")) {
+                    if (actualCode == Integer.parseInt(codePattern)) {
+                        return true;
+                    }
+                } else if (codePattern.matches("\\d{3}-\\d{3}")) {
+                    String[] parts = codePattern.split("-");
+                    int start = Integer.parseInt(parts[0]);
+                    int end = Integer.parseInt(parts[1]);
+                    if (actualCode >= start && actualCode <= end) {
+                        return true;
+                    }
+                } else if (codePattern.matches("\\dxx")) {
+                    int hundreds = Integer.parseInt(codePattern.substring(0, 1)) * 100;
+                    if (actualCode >= hundreds && actualCode < hundreds + 100) {
+                        return true;
+                    }
+                }
+            } catch (NumberFormatException ex) {
+                // Log at a low level
+                System.err.println("Warning: Ignoring malformed responseCode entry: '" + codePattern + "'");
+            }
+        }
+
+        return false;
+    }
+
+
+
+    /**
+     * Validates the HTTP response code against a list or range of acceptable values.
+     *
+     * <p>If a responseCode string is provided (e.g. "200,204-206,2xx"), this method checks if
+     * the actual response code matches any of the defined values or patterns. If it does not,
+     * a StepException is thrown.</p>
+     *
+     * <p>If no responseCode is provided, the default behavior is to fail on any code
+     * greater than or equal to 400.</p>
+     *
+     * @param response the {@link HttpResponse} returned by the HTTP client
+     * @param actualCode the actual HTTP status code from the response
+     * @param responseCodeStr the user-defined expected response code(s), which may include comma-separated values, ranges (e.g. "200-206"), or wildcard groups (e.g. "2xx").
+     * @throws IOException if an error occurs reading the response body
+     * @throws StepException if the response code is unexpected or represents a failure
+     */
+    private void validateResponseCodeOrThrow(HttpResponse response, int actualCode, String responseCodeStr) throws IOException, StepException {
+        if (responseCodeStr != null && !responseCodeStr.trim().isEmpty()) {
+            if (!isExpectedResponseCode(actualCode, responseCodeStr)) {
+                String message = "Unexpected response code: " + actualCode;
+                String body = EntityUtils.toString(response.getEntity());
+                if (!body.isEmpty()) {
+                    message += ": " + body;
+                }
+                throw new StepException(message, Reason.HTTPFailure);
+            }
+        } else {
+            if (actualCode >= 400) {
+                String message = "HTTP request failed with status code: " + actualCode;
+                String body = EntityUtils.toString(response.getEntity());
+                if (!body.isEmpty()) {
+                    message += ": " + body;
+                }
+                throw new StepException(message, Reason.HTTPFailure);
+            }
+        }
+    }
+
 
 
 }

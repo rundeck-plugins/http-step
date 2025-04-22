@@ -347,7 +347,7 @@ public class HttpWorkflowNodeStepPluginTest {
         }
     }
 
-    @Test()
+    @Test(expected = NodeStepException.class)
     public void canCallOAuthEndpointWithExpiredToken() throws NodeStepException {
         this.plugin.oauthClients.put(OAUTH_CLIENT_MAP_KEY, this.oAuthClientTest.setupClient(OAuthClientTest.ACCESS_TOKEN_EXPIRED));
 

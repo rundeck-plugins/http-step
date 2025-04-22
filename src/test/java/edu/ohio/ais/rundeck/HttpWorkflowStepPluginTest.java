@@ -7,6 +7,7 @@ import com.dtolabs.rundeck.core.execution.ExecutionContext;
 import com.dtolabs.rundeck.core.execution.workflow.steps.PluginStepContextImpl;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepException;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepFailureReason;
+import com.dtolabs.rundeck.core.execution.workflow.steps.node.NodeStepException;
 import com.dtolabs.rundeck.core.plugins.configuration.Description;
 import com.dtolabs.rundeck.core.utils.IPropertyLookup;
 import com.dtolabs.rundeck.plugins.PluginLogger;
@@ -35,6 +36,7 @@ public class HttpWorkflowStepPluginTest {
     protected static final String REMOTE_OAUTH_URL = "/oauth";
     protected static final String REMOTE_OAUTH_EXPIRED_URL = "/oauth-expired";
     protected static final String ERROR_URL_500 = "/error500";
+    protected static final String ERROR_URL_400 = "/error400";
     protected static final String ERROR_URL_401 = "/error401";
     protected static final String NO_CONTENT_URL = "/nocontent204";
     protected static final String OAUTH_CLIENT_MAP_KEY = OAuthClientTest.CLIENT_VALID + "@"
@@ -142,6 +144,10 @@ public class HttpWorkflowStepPluginTest {
             WireMock.stubFor(WireMock.request(method, WireMock.urlEqualTo(ERROR_URL_500))
                     .willReturn(WireMock.aResponse()
                             .withStatus(500)));
+            // 400 Error
+            WireMock.stubFor(WireMock.request(method, WireMock.urlEqualTo(ERROR_URL_400))
+                    .willReturn(WireMock.aResponse()
+                            .withStatus(400)));
 
             // 204 No Content
             WireMock.stubFor(WireMock.request(method, WireMock.urlEqualTo(NO_CONTENT_URL))
@@ -291,6 +297,99 @@ public class HttpWorkflowStepPluginTest {
 
         this.plugin.executeStep(pluginContext, options);
     }
+    @Test
+    public void willPassWhenResponseCodeMatchesExact() throws StepException {
+        Map<String, Object> options = new HashMap<>();
+
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + REMOTE_URL); // returns 200
+        options.put("method", "GET");
+        options.put("checkResponseCode", true);
+        options.put("responseCode", "200");
+
+        this.plugin.executeStep(pluginContext, options); // Should not throw
+    }
+    @Test
+    public void willPassWhenResponseCodeInRange() throws StepException {
+        Map<String, Object> options = new HashMap<>();
+
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + NO_CONTENT_URL); // returns 204
+        options.put("method", "GET");
+        options.put("checkResponseCode", true);
+        options.put("responseCode", "200-204");
+
+        this.plugin.executeStep(pluginContext, options); // Should not throw
+    }
+    @Test
+    public void willPassWhenResponseCodeMatchesPattern2xx() throws StepException {
+        Map<String, Object> options = new HashMap<>();
+
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + REMOTE_URL); // returns 200
+        options.put("method", "GET");
+        options.put("checkResponseCode", true);
+        options.put("responseCode", "2xx");
+
+        this.plugin.executeStep(pluginContext, options); // Should not throw
+    }
+    @Test
+    public void willPassWhenResponseCodeMatchesAnyInList() throws StepException {
+        Map<String, Object> options = new HashMap<>();
+
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + NO_CONTENT_URL); // returns 204
+        options.put("method", "GET");
+        options.put("checkResponseCode", true);
+        options.put("responseCode", "200,204-206");
+
+        this.plugin.executeStep(pluginContext, options); // Should not throw
+    }
+    @Test(expected = StepException.class)
+    public void willFailWhenResponseCodeDoesNotMatch() throws StepException {
+        Map<String, Object> options = new HashMap<>();
+
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + ERROR_URL_401); // returns 401
+        options.put("method", "GET");
+        options.put("checkResponseCode", true);
+        options.put("responseCode", "200,204,2xx");
+
+        this.plugin.executeStep(pluginContext, options); // Should throw
+    }
+    @Test
+    public void willPassForCombinationOfPatternAndRange() throws StepException {
+        Map<String, Object> options = new HashMap<>();
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + NO_CONTENT_URL); // returns 204
+        options.put("method", "GET");
+        options.put("responseCode", "4xx,204-206");
+
+        this.plugin.executeStep(pluginContext, options); // Should not throw
+    }
+
+    @Test
+    public void willPassForExactAndPatternMatch() throws StepException {
+        Map<String, Object> options = new HashMap<>();
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + REMOTE_URL); // returns 200
+        options.put("method", "GET");
+        options.put("responseCode", "200,4xx");
+
+        this.plugin.executeStep(pluginContext, options); // Should not throw
+    }
+
+    @Test
+    public void willSucceedOn400IfWhitelisted() throws StepException {
+        Map<String, Object> options = new HashMap<>();
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + ERROR_URL_400);
+        options.put("method", "GET");
+        options.put("responseCode", "400,4xx");
+
+        this.plugin.executeStep(pluginContext, options); // Should not throw
+    }
+    @Test(expected = StepException.class)
+    public void willFailOnMalformedResponseCode() throws StepException {
+        Map<String, Object> options = new HashMap<>();
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + REMOTE_URL); // returns 200
+        options.put("method", "GET");
+        options.put("responseCode", "20x,garbage,!!");
+
+        this.plugin.executeStep(pluginContext, options); // Should throw
+    }
 
     @Test(expected = StepException.class)
     public void canHandleBASICWrongAuthType() throws StepException {
@@ -323,7 +422,7 @@ public class HttpWorkflowStepPluginTest {
         }
     }
 
-    @Test()
+    @Test(expected = StepException.class)
     public void canCallOAuthEndpointWithExpiredToken() throws StepException {
         this.plugin.oauthClients.put(OAUTH_CLIENT_MAP_KEY, this.oAuthClientTest.setupClient(OAuthClientTest.ACCESS_TOKEN_EXPIRED));
 
