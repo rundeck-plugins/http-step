@@ -39,7 +39,7 @@ configurations{
 }
 
 dependencies {
-    implementation 'org.rundeck:rundeck-core:5.2.0-20240410'
+    implementation 'org.rundeck:rundeck-core:5.14.0-20250804'
 
     pluginLibs group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.14'
     pluginLibs group: 'com.google.code.gson', name: 'gson', version:'2.10.1'
