@@ -6,7 +6,8 @@ plugins {
 
 apply plugin: 'java'
 
-sourceCompatibility = 1.11
+sourceCompatibility = 17
+targetCompatibility = 17
 ext.rundeckPluginVersion = '1.2'
 ext.pluginClassNames='edu.ohio.ais.rundeck.HttpWorkflowStepPlugin,edu.ohio.ais.rundeck.HttpWorkflowNodeStepPlugin'
 ext.pluginName = 'Rundeck Http Step'
@@ -21,7 +22,8 @@ scmVersion {
     }
 }
 project.version = scmVersion.version
-
+// Override version for Grails 7 upgrade
+project.version = '1.1.9-grails7-upgrade-test'
 
 repositories {
     mavenLocal()
@@ -39,7 +41,7 @@ configurations{
 }
 
 dependencies {
-    implementation 'org.rundeck:rundeck-core:5.14.0-rc1-20250722'
+    implementation 'org.rundeck:rundeck-core:6.0.0-SNAPSHOT'
     
     // Add secure commons-lang3 to provide alternative to vulnerable commons-lang 2.6
     implementation 'org.apache.commons:commons-lang3:3.18.0'
@@ -48,7 +50,7 @@ dependencies {
     pluginLibs group: 'com.google.code.gson', name: 'gson', version:'2.10.1'
 
     testImplementation group: 'com.github.tomakehurst', name: 'wiremock-standalone', version:'2.23.2'
-    testImplementation group: 'junit', name: 'junit', version:'4.13.1'
+    testImplementation group: 'junit', name: 'junit', version:'4.13.2'
 
     testImplementation (
             'org.mockito:mockito-all:1.9.5',
@@ -73,6 +75,18 @@ task copyToLib(type: Copy) {
     from configurations.pluginLibs
 }
 
+
+test {
+    useJUnit()
+    
+    // Java 17+ module access for reflection/mocking
+    jvmArgs = [
+        '--add-opens=java.base/java.lang=ALL-UNNAMED',
+        '--add-opens=java.base/java.util=ALL-UNNAMED',
+        '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+        '--add-opens=java.base/java.net=ALL-UNNAMED'
+    ]
+}
 
 jar {
     from "$buildDir/output"
