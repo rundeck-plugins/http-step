@@ -14,14 +14,6 @@ ext.pluginName = 'Rundeck Http Step'
 ext.pluginDescription = 'A workflow plugin that makes HTTP requests'
 group = 'com.github.rundeck-plugins'
 
-scmVersion {
-    ignoreUncommittedChanges = true
-    tag {
-        prefix = ''
-        versionSeparator = ''
-    }
-}
-project.version = scmVersion.version
 // Override version for Grails 7 upgrade
 project.version = '1.1.9-grails7-upgrade-test'
 
