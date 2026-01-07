@@ -15,7 +15,7 @@ ext.pluginDescription = 'A workflow plugin that makes HTTP requests'
 group = 'com.github.rundeck-plugins'
 
 // Override version for Grails 7 upgrade
-project.version = '1.1.15-grails7-upgrade-test'
+project.version = '1.1.16-grails7-upgrade-test'
 
 repositories {
     mavenLocal()
