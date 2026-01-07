@@ -15,7 +15,7 @@ ext.pluginDescription = 'A workflow plugin that makes HTTP requests'
 group = 'com.github.rundeck-plugins'
 
 // Override version for Grails 7 upgrade
-project.version = '1.1.14-grails7-upgrade-test'
+project.version = '1.1.15-grails7-upgrade-test'
 
 repositories {
     mavenLocal()
@@ -52,8 +52,8 @@ dependencies {
     implementation 'org.rundeck:rundeck-core:6.0.0-SNAPSHOT'
     
     // Add secure commons-lang3 to provide alternative to vulnerable commons-lang 2.6
-    // Standardized on 3.18.0 across all plugins
-    pluginLibs 'org.apache.commons:commons-lang3:3.18.0'
+    // Version 3.17.0 required for Grails 7 / Spring Boot compatibility
+    pluginLibs 'org.apache.commons:commons-lang3:3.17.0'
 
     pluginLibs group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.14'
     pluginLibs group: 'com.google.code.gson', name: 'gson', version:'2.10.1'
@@ -71,9 +71,9 @@ dependencies {
 configurations.all {
     resolutionStrategy {
         // Replace vulnerable commons-lang with secure commons-lang3
-        // Standardized on 3.18.0 across all plugins
+        // Version 3.17.0 required for Grails 7 / Spring Boot compatibility
         dependencySubstitution {
-            substitute module('commons-lang:commons-lang') using module('org.apache.commons:commons-lang3:3.18.0')
+            substitute module('commons-lang:commons-lang') using module('org.apache.commons:commons-lang3:3.17.0')
         }
     }
 }
