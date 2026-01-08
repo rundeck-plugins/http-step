@@ -12,10 +12,17 @@ ext.rundeckPluginVersion = '1.2'
 ext.pluginClassNames='edu.ohio.ais.rundeck.HttpWorkflowStepPlugin,edu.ohio.ais.rundeck.HttpWorkflowNodeStepPlugin'
 ext.pluginName = 'Rundeck Http Step'
 ext.pluginDescription = 'A workflow plugin that makes HTTP requests'
-group = 'com.github.rundeck-plugins'
+group = 'com.rundeck.plugins'
 
-// Override version for Grails 7 upgrade
-project.version = '1.1.18-grails7-upgrade-test'
+scmVersion {
+    ignoreUncommittedChanges = false
+    tag {
+        prefix = ''           // NO "v" prefix - see PLUGIN_TAGGING_ARCHITECTURE.md
+        versionSeparator = ''
+    }
+}
+
+version = scmVersion.version  // Dynamic version from git tag
 
 repositories {
     mavenLocal()
@@ -118,8 +125,24 @@ jar {
 publishing {
     publications {
         maven(MavenPublication) {
+            groupId = 'com.rundeck.plugins'
             artifactId = 'http-step'
+            version = project.version
             from components.java
+        }
+    }
+    
+    repositories {
+        maven {
+            name = "PackageCloudTest"
+            url = uri("https://packagecloud.io/pagerduty/rundeckpro-test/maven2")
+            authentication {
+                header(HttpHeaderAuthentication)
+            }
+            credentials(HttpHeaderCredentials) {
+                name = "Authorization"
+                value = "Bearer " + (System.getenv("PKGCLD_WRITE_TOKEN") ?: project.findProperty("pkgcldWriteToken"))
+            }
         }
     }
 }
