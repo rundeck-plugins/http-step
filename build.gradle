@@ -1,18 +1,26 @@
 plugins {
     id 'pl.allegro.tech.build.axion-release' version '1.17.2'
     id 'java'
-    id 'maven-publish'
+    id 'io.github.gradle-nexus.publish-plugin' version '2.0.0'
 }
 
-apply plugin: 'java'
-
-sourceCompatibility = 17
-targetCompatibility = 17
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    withSourcesJar()
+    withJavadocJar()
+}
 ext.rundeckPluginVersion = '1.2'
 ext.pluginClassNames='edu.ohio.ais.rundeck.HttpWorkflowStepPlugin,edu.ohio.ais.rundeck.HttpWorkflowNodeStepPlugin'
 ext.pluginName = 'Rundeck Http Step'
 ext.pluginDescription = 'A workflow plugin that makes HTTP requests'
-group = 'com.rundeck.plugins'
+group = 'org.rundeck.plugins'
+
+ext.publishName = "Rundeck Http Step ${project.version}"
+ext.githubSlug = 'rundeck-plugins/http-step'
+ext.developers = [
+        [id: 'gschueler', name: 'Greg Schueler', email: 'greg@rundeck.com']
+]
 
 scmVersion {
     ignoreUncommittedChanges = false
@@ -56,7 +64,8 @@ configurations{
 }
 
 dependencies {
-    implementation 'org.rundeck:rundeck-core:6.0.0-SNAPSHOT'
+    compileOnly 'org.rundeck:rundeck-core:6.0.0-SNAPSHOT'
+    testImplementation 'org.rundeck:rundeck-core:6.0.0-SNAPSHOT'
     
     // Add secure commons-lang3 to provide alternative to vulnerable commons-lang 2.6
     // Version 3.20.0 fixes CVE-2025-48924 (StackOverflowError in ClassUtils)
@@ -122,27 +131,14 @@ jar {
     }
 }
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            groupId = 'com.rundeck.plugins'
-            artifactId = 'http-step'
-            version = project.version
-            from components.java
-        }
-    }
-    
+nexusPublishing {
+    packageGroup = 'org.rundeck.plugins'
     repositories {
-        maven {
-            name = "PackageCloudTest"
-            url = uri("https://packagecloud.io/pagerduty/rundeckpro-test/maven2")
-            authentication {
-                header(HttpHeaderAuthentication)
-            }
-            credentials(HttpHeaderCredentials) {
-                name = "Authorization"
-                value = "Bearer " + (System.getenv("PKGCLD_WRITE_TOKEN") ?: project.findProperty("pkgcldWriteToken"))
-            }
+        sonatype {
+            nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
         }
     }
 }
+
+apply from: "${rootDir}/gradle/publishing.gradle"
