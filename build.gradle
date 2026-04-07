@@ -1,30 +1,55 @@
 plugins {
     id 'pl.allegro.tech.build.axion-release' version '1.17.2'
     id 'java'
-    id 'maven-publish'
+    id 'io.github.gradle-nexus.publish-plugin' version '2.0.0'
 }
 
-apply plugin: 'java'
-
-sourceCompatibility = 1.11
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    withSourcesJar()
+    withJavadocJar()
+}
 ext.rundeckPluginVersion = '1.2'
 ext.pluginClassNames='edu.ohio.ais.rundeck.HttpWorkflowStepPlugin,edu.ohio.ais.rundeck.HttpWorkflowNodeStepPlugin'
 ext.pluginName = 'Rundeck Http Step'
 ext.pluginDescription = 'A workflow plugin that makes HTTP requests'
-group = 'com.github.rundeck-plugins'
+group = 'org.rundeck.plugins'
+
+ext.publishName = "Rundeck Http Step ${project.version}"
+ext.githubSlug = 'rundeck-plugins/http-step'
+ext.developers = [
+        [id: 'gschueler', name: 'Greg Schueler', email: 'greg@rundeck.com']
+]
 
 scmVersion {
-    ignoreUncommittedChanges = true
+    ignoreUncommittedChanges = false
     tag {
-        prefix = ''
+        prefix = ''           // NO "v" prefix - see PLUGIN_TAGGING_ARCHITECTURE.md
         versionSeparator = ''
     }
 }
-project.version = scmVersion.version
 
+version = scmVersion.version  // Dynamic version from git tag
 
 repositories {
     mavenLocal()
+    maven {
+        name = 'Central Portal Snapshots'
+        url = 'https://central.sonatype.com/repository/maven-snapshots/'
+        content {
+            includeGroup('org.rundeck')
+        }
+    }
+    maven {
+        name = 'Central Portal Snapshots'
+        url = 'https://central.sonatype.com/repository/maven-snapshots/'
+        
+        // Only search this repository for org.rundeck snapshots
+        content {
+            includeGroup('org.rundeck')
+        }
+    }
     mavenCentral()
 }
 
@@ -39,16 +64,18 @@ configurations{
 }
 
 dependencies {
-    implementation 'org.rundeck:rundeck-core:5.14.0-rc1-20250722'
+    compileOnly 'org.rundeck:rundeck-core:6.0.0-alpha1-20260407'
+    testImplementation 'org.rundeck:rundeck-core:6.0.0-alpha1-20260407'
     
     // Add secure commons-lang3 to provide alternative to vulnerable commons-lang 2.6
-    implementation 'org.apache.commons:commons-lang3:3.18.0'
+    // Version 3.20.0 fixes CVE-2025-48924 (StackOverflowError in ClassUtils)
+    pluginLibs 'org.apache.commons:commons-lang3:3.20.0'
 
     pluginLibs group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.14'
     pluginLibs group: 'com.google.code.gson', name: 'gson', version:'2.10.1'
 
     testImplementation group: 'com.github.tomakehurst', name: 'wiremock-standalone', version:'2.23.2'
-    testImplementation group: 'junit', name: 'junit', version:'4.13.1'
+    testImplementation group: 'junit', name: 'junit', version:'4.13.2'
 
     testImplementation (
             'org.mockito:mockito-all:1.9.5',
@@ -60,6 +87,7 @@ dependencies {
 configurations.all {
     resolutionStrategy {
         // Replace vulnerable commons-lang with secure commons-lang3
+        // Version 3.18.0 fixes CVE-2025-48924 (StackOverflowError in ClassUtils)
         dependencySubstitution {
             substitute module('commons-lang:commons-lang') using module('org.apache.commons:commons-lang3:3.18.0')
         }
@@ -67,15 +95,24 @@ configurations.all {
 }
 
 
-// task to copy plugin libs to output/lib dir
-task copyToLib(type: Copy) {
-    into "$buildDir/output/lib"
-    from configurations.pluginLibs
+test {
+    useJUnit()
+    
+    // Java 17+ module access for reflection/mocking
+    jvmArgs = [
+        '--add-opens=java.base/java.lang=ALL-UNNAMED',
+        '--add-opens=java.base/java.util=ALL-UNNAMED',
+        '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+        '--add-opens=java.base/java.net=ALL-UNNAMED'
+    ]
 }
 
-
 jar {
-    from "$buildDir/output"
+    // Include plugin dependencies in lib/ directory
+    into('lib') {
+        from configurations.pluginLibs
+    }
+    
     manifest {
         def libList = configurations.pluginLibs.collect{'lib/'+it.name}.join(' ')
 
@@ -86,22 +123,22 @@ jar {
         attributes 'Rundeck-Plugin-Rundeck-Compatibility-Version': '3.x'
         attributes 'Rundeck-Plugin-Tags': 'java,WorkflowStep'
         attributes 'Rundeck-Plugin-License': 'Apache 2.0'
-        attributes 'Rundeck-Plugin-Source-Link': 'https://github.com/rundeck-plugins/http-notification'
+        attributes 'Rundeck-Plugin-Source-Link': 'https://github.com/rundeck-plugins/http-step'
         attributes 'Rundeck-Plugin-Target-Host-Compatibility': 'all'
         attributes 'Rundeck-Plugin-Version': rundeckPluginVersion
         attributes 'Rundeck-Plugin-Archive': 'true'
         attributes 'Rundeck-Plugin-Libs': "${libList}"
-
     }
-    dependsOn(copyToLib)
-
 }
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            artifactId = 'http-step'
-            from components.java
+nexusPublishing {
+    packageGroup = 'org.rundeck.plugins'
+    repositories {
+        sonatype {
+            nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
         }
     }
 }
+
+apply from: "${rootDir}/gradle/publishing.gradle"
