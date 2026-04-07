@@ -64,8 +64,8 @@ configurations{
 }
 
 dependencies {
-    compileOnly 'org.rundeck:rundeck-core:6.0.0-SNAPSHOT'
-    testImplementation 'org.rundeck:rundeck-core:6.0.0-SNAPSHOT'
+    compileOnly 'org.rundeck:rundeck-core:6.0.0-alpha1-20260407'
+    testImplementation 'org.rundeck:rundeck-core:6.0.0-alpha1-20260407'
     
     // Add secure commons-lang3 to provide alternative to vulnerable commons-lang 2.6
     // Version 3.20.0 fixes CVE-2025-48924 (StackOverflowError in ClassUtils)
