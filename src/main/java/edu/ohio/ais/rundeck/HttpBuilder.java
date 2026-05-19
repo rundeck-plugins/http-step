@@ -429,38 +429,46 @@ public class HttpBuilder {
 
 
     public void setHeaders(String headers, RequestBuilder request){
-        //checking json
-        Gson gson = new Gson();
-        Map<String,String> map = new HashMap<>();
-
-        try {
-            map = (Map<String,String>) gson.fromJson(headers, map.getClass());
-        } catch (Exception e) {
-            map = null;
-        }
-
-        //checking yml
-        if(map == null) {
-            map = new HashMap<>();
-            Object object = null;
-            try {
-                Yaml yaml = new Yaml(new SafeConstructor(new LoaderOptions()));
-                map = yaml.load(headers);
-            } catch (Exception e) {
-                map = null;
-            }
-        }
-
-        if(map == null){
+        Map<String, Object> map = parseHeaders(headers);
+        if (map == null) {
             log.log(0, "Error parsing the headers");
-        }else{
-            for (Map.Entry<String, String> entry : map.entrySet()) {
-                String key = entry.getKey();
-                String value = entry.getValue();
+            return;
+        }
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            request.setHeader(entry.getKey(), headerValueToString(entry.getValue()));
+        }
+    }
 
-                request.setHeader(key, value);
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> parseHeaders(String headers) {
+        try {
+            Object parsed = new Gson().fromJson(headers, HashMap.class);
+            if (parsed instanceof Map) {
+                return (Map<String, Object>) parsed;
+            }
+        } catch (Exception ignored) {
+            // fall through to YAML
+        }
+        try {
+            Object parsed = new Yaml(new SafeConstructor(new LoaderOptions())).load(headers);
+            if (parsed instanceof Map) {
+                return (Map<String, Object>) parsed;
+            }
+        } catch (Exception ignored) {
+            // both parsers failed; caller logs and skips
+        }
+        return null;
+    }
+
+    static String headerValueToString(Object value) {
+        if (value instanceof Double) {
+            double d = (Double) value;
+            if (!Double.isInfinite(d) && !Double.isNaN(d) && d == Math.floor(d)
+                    && d >= Long.MIN_VALUE && d <= Long.MAX_VALUE) {
+                return Long.toString((long) d);
             }
         }
+        return String.valueOf(value);
     }
 
     static void propertyResolver(String pluginType, String property, Map<String,Object> Configuration, PluginStepContext context, String SERVICE_PROVIDER_NAME) {
