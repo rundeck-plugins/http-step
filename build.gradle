@@ -1,5 +1,5 @@
 plugins {
-    id 'pl.allegro.tech.build.axion-release' version '1.17.2'
+    id 'pl.allegro.tech.build.axion-release' version '1.21.2'
     id 'java'
     id 'io.github.gradle-nexus.publish-plugin' version '2.0.0'
 }
@@ -64,8 +64,8 @@ configurations{
 }
 
 dependencies {
-    compileOnly 'org.rundeck:rundeck-core:6.0.0-alpha1-20260407'
-    testImplementation 'org.rundeck:rundeck-core:6.0.0-alpha1-20260407'
+    compileOnly 'org.rundeck:rundeck-core:6.1.0-SNAPSHOT'
+    testImplementation 'org.rundeck:rundeck-core:6.1.0-SNAPSHOT'
     
     // Add secure commons-lang3 to provide alternative to vulnerable commons-lang 2.6
     // Version 3.20.0 fixes CVE-2025-48924 (StackOverflowError in ClassUtils)
