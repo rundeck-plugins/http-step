@@ -71,8 +71,19 @@ dependencies {
     // Version 3.20.0 fixes CVE-2025-48924 (StackOverflowError in ClassUtils)
     pluginLibs 'org.apache.commons:commons-lang3:3.20.0'
 
-    pluginLibs group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.14'
+    // Exclude the real commons-logging pulled in transitively by httpclient so it is not
+    // bundled into the plugin jar. At runtime Rundeck core already provides the
+    // org.apache.commons.logging API via spring-jcl; shipping commons-logging too makes
+    // spring-jcl print a discovery warning to stdout on first use, which pollutes step
+    // output (breaks the json-mapper LogFilter).
+    pluginLibs(group: 'org.apache.httpcomponents', name: 'httpclient', version: httpclientVersion) {
+        exclude group: 'commons-logging', module: 'commons-logging'
+    }
     pluginLibs group: 'com.google.code.gson', name: 'gson', version:'2.10.1'
+
+    // Tests run without spring-jcl, so HttpClient needs a real commons-logging
+    // implementation on the test classpath only (not bundled into the plugin).
+    testRuntimeOnly group: 'commons-logging', name: 'commons-logging', version: commonsLoggingVersion
 
     testImplementation group: 'com.github.tomakehurst', name: 'wiremock-standalone', version:'2.23.2'
     testImplementation group: 'junit', name: 'junit', version:'4.13.2'
