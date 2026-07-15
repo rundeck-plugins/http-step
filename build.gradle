@@ -85,7 +85,7 @@ dependencies {
     // implementation on the test classpath only (not bundled into the plugin).
     testRuntimeOnly group: 'commons-logging', name: 'commons-logging', version: commonsLoggingVersion
 
-    testImplementation group: 'com.github.tomakehurst', name: 'wiremock-standalone', version:'2.23.2'
+    testImplementation group: 'com.github.tomakehurst', name: 'wiremock-standalone', version:'2.27.2'
     testImplementation group: 'junit', name: 'junit', version:'4.13.2'
 
     testImplementation (
