@@ -89,7 +89,7 @@ dependencies {
     testImplementation group: 'junit', name: 'junit', version:'4.13.2'
 
     testImplementation (
-            'org.mockito:mockito-all:1.9.5',
+            'org.mockito:mockito-all:1.10.19',
             'org.powermock:powermock-module-junit4:2.0.9',
             'org.powermock:powermock-api-mockito:1.5'
     )
