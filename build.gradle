@@ -90,7 +90,7 @@ dependencies {
 
     testImplementation (
             'org.mockito:mockito-all:1.9.5',
-            'org.powermock:powermock-module-junit4:1.5',
+            'org.powermock:powermock-module-junit4:2.0.9',
             'org.powermock:powermock-api-mockito:1.5'
     )
 }
