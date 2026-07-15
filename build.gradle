@@ -100,7 +100,7 @@ configurations.all {
         // Replace vulnerable commons-lang with secure commons-lang3
         // Version 3.18.0 fixes CVE-2025-48924 (StackOverflowError in ClassUtils)
         dependencySubstitution {
-            substitute module('commons-lang:commons-lang') using module('org.apache.commons:commons-lang3:3.18.0')
+            substitute module('commons-lang:commons-lang') using module('org.apache.commons:commons-lang3:3.20.0')
         }
     }
 }
