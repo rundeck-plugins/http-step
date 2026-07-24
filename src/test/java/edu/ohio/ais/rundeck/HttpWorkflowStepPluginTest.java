@@ -32,6 +32,8 @@ public class HttpWorkflowStepPluginTest {
     protected static final String REMOTE_URL = "/trigger";
     protected static final String BOGUS_URL = "/bogus";
     protected static final String REMOTE_BASIC_URL = "/trigger-basic";
+    protected static final String REMOTE_BEARER_URL = "/trigger-bearer";
+    protected static final String BEARER_TOKEN = "my-bearer-token";
     protected static final String REMOTE_SLOW_URL = "/slow-trigger";
     protected static final String REMOTE_OAUTH_URL = "/oauth";
     protected static final String REMOTE_OAUTH_EXPIRED_URL = "/oauth-expired";
@@ -83,6 +85,21 @@ public class HttpWorkflowStepPluginTest {
     }
 
     /**
+     * Setup options for execution for the given method using a Bearer token.
+     * @param method HTTP Method to use.
+     * @return Options for the execution.
+     */
+    public Map<String, Object> getBearerOptions(String method) {
+        Map<String, Object> options = getExecutionOptions(method);
+
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + REMOTE_BEARER_URL);
+        options.put("password", BEARER_TOKEN);
+        options.put("authentication", HttpBuilder.AUTH_BEARER);
+
+        return options;
+    }
+
+    /**
      * Setup options for simple execution for the given method using OAuth 2.0.
      * @param method HTTP Method to use.
      * @return Options for the execution.
@@ -118,6 +135,15 @@ public class HttpWorkflowStepPluginTest {
                     .withBasicAuth(OAuthClientTest.CLIENT_VALID, OAuthClientTest.CLIENT_SECRET)
                     .willReturn(WireMock.aResponse()
                             .withStatus(200)));
+
+            // Bearer token, with a 401 for anything but the expected token
+            WireMock.stubFor(WireMock.request(method, WireMock.urlEqualTo(REMOTE_BEARER_URL)).atPriority(1)
+                    .withHeader("Authorization", WireMock.equalTo("Bearer " + BEARER_TOKEN))
+                    .willReturn(WireMock.aResponse()
+                            .withStatus(200)));
+            WireMock.stubFor(WireMock.request(method, WireMock.urlEqualTo(REMOTE_BEARER_URL)).atPriority(2)
+                    .willReturn(WireMock.aResponse()
+                            .withStatus(401)));
 
             // OAuth with a fresh token
             WireMock.stubFor(WireMock.request(method, WireMock.urlEqualTo(REMOTE_OAUTH_URL))
@@ -413,6 +439,37 @@ public class HttpWorkflowStepPluginTest {
         options.put("authentication", HttpBuilder.AUTH_BASIC);
 
         this.plugin.executeStep(pluginContext, options);
+    }
+
+    @Test()
+    public void canCallBearerEndpoint() throws StepException {
+        for(String method : HttpBuilder.HTTP_METHODS) {
+            this.plugin.executeStep(pluginContext, this.getBearerOptions(method));
+        }
+    }
+
+    @Test(expected = StepException.class)
+    public void cannotCallBearerEndpointWithWrongToken() throws StepException {
+        Map<String, Object> options = this.getBearerOptions("GET");
+        options.put("password", "wrong-token");
+
+        this.plugin.executeStep(pluginContext, options);
+    }
+
+    @Test
+    public void canValidateBearerConfiguration() {
+        // Selecting Bearer without a token is a configuration error.
+        Map<String, Object> options = new HashMap<>();
+        options.put("remoteUrl", OAuthClientTest.BASE_URI + REMOTE_BEARER_URL);
+        options.put("method", "GET");
+        options.put("authentication", HttpBuilder.AUTH_BEARER);
+
+        try {
+            this.plugin.executeStep(pluginContext, options);
+            fail("Expected configuration exception.");
+        } catch (StepException se) {
+            assertEquals(StepFailureReason.ConfigurationFailure, se.getFailureReason());
+        }
     }
 
     @Test()

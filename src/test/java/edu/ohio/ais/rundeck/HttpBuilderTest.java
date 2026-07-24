@@ -1,29 +1,79 @@
 package edu.ohio.ais.rundeck;
 
+import com.dtolabs.rundeck.core.execution.ExecutionContext;
+import com.dtolabs.rundeck.core.execution.workflow.steps.StepException;
+import com.dtolabs.rundeck.core.execution.workflow.steps.StepFailureReason;
+import com.dtolabs.rundeck.core.storage.ResourceMeta;
+import com.dtolabs.rundeck.core.storage.StorageTree;
 import com.dtolabs.rundeck.plugins.PluginLogger;
+import com.dtolabs.rundeck.plugins.step.PluginStepContext;
 import org.apache.http.client.methods.RequestBuilder;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+import org.rundeck.storage.api.Resource;
 
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
 import static edu.ohio.ais.rundeck.HttpBuilder.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 public class HttpBuilderTest {
 
     private HttpBuilder builder;
     private RequestBuilder request;
+    private PluginStepContext pluginStepContext;
+    private ExecutionContext executionContext;
 
     @Before
     public void setUp() {
         builder = new HttpBuilder();
         request = mock(RequestBuilder.class);
+
+        // getAuthHeader always tries key storage first; with no storage tree
+        // stubbed, SecretBundleUtil logs the failure and falls back to using
+        // the raw option value as the password.
+        pluginStepContext = mock(PluginStepContext.class);
+        executionContext = mock(ExecutionContext.class);
+        when(pluginStepContext.getExecutionContext()).thenReturn(executionContext);
+        when(executionContext.getExecutionLogger()).thenReturn(mock(PluginLogger.class));
+    }
+
+    /**
+     * Stub the key storage tree so the given path resolves to the given content.
+     */
+    private void stubStoragePassword(String path, final String content) {
+        StorageTree storageTree = mock(StorageTree.class);
+        @SuppressWarnings("unchecked")
+        Resource<ResourceMeta> resource = mock(Resource.class);
+        ResourceMeta meta = mock(ResourceMeta.class);
+
+        when(executionContext.getStorageTree()).thenReturn(storageTree);
+        when(storageTree.getResource(path)).thenReturn(resource);
+        when(resource.getContents()).thenReturn(meta);
+        try {
+            when(meta.writeContent(any(OutputStream.class))).thenAnswer(new Answer<Long>() {
+                @Override
+                public Long answer(InvocationOnMock invocation) throws Throwable {
+                    byte[] bytes = content.getBytes();
+                    ((OutputStream) invocation.getArguments()[0]).write(bytes);
+                    return (long) bytes.length;
+                }
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test
@@ -168,6 +218,89 @@ public class HttpBuilderTest {
         // Genuinely fractional Doubles must keep their decimal form rather
         // than being silently truncated to a long.
         assertEquals("1.5", headerValueToString(1.5));
+    }
+
+    // The "Bearer" authentication type sends the resolved password verbatim as
+    // a Bearer credential in the Authorization header.
+
+    @Test
+    public void getAuthHeader_bearerAuth_returnsBearerHeader() throws StepException {
+        Map<String, Object> options = new HashMap<>();
+        options.put("authentication", AUTH_BEARER);
+        options.put("password", "my-token");
+
+        assertEquals("Bearer my-token", builder.getAuthHeader(pluginStepContext, options));
+    }
+
+    @Test
+    public void getAuthHeader_bearerAuth_ignoresUsername() throws StepException {
+        // Unlike BASIC, the username plays no part in the header.
+        Map<String, Object> options = new HashMap<>();
+        options.put("authentication", AUTH_BEARER);
+        options.put("username", "user");
+        options.put("password", "my-token");
+
+        assertEquals("Bearer my-token", builder.getAuthHeader(pluginStepContext, options));
+    }
+
+    @Test
+    public void getAuthHeader_bearerAuth_doesNotContactTokenEndpoint() throws StepException {
+        // No OAuth client should be built even if OAuth endpoints are left
+        // configured from a previous authentication choice.
+        Map<String, Object> options = new HashMap<>();
+        options.put("authentication", AUTH_BEARER);
+        options.put("username", "client-id");
+        options.put("password", "my-token");
+        options.put("oauthTokenEndpoint", "http://localhost:1/token");
+
+        assertEquals("Bearer my-token", builder.getAuthHeader(pluginStepContext, options));
+        assertTrue("Expected no OAuth client to be created", builder.getOauthClients().isEmpty());
+    }
+
+    @Test
+    public void getAuthHeader_bearerAuthWithStoragePath_usesStoredValue() throws StepException {
+        stubStoragePassword("keys/my/token", "stored-token");
+
+        Map<String, Object> options = new HashMap<>();
+        options.put("authentication", AUTH_BEARER);
+        options.put("password", "keys/my/token");
+
+        assertEquals("Bearer stored-token", builder.getAuthHeader(pluginStepContext, options));
+    }
+
+    @Test
+    public void getAuthHeader_bearerAuthWithoutPassword_throwsConfigurationFailure() {
+        Map<String, Object> options = new HashMap<>();
+        options.put("authentication", AUTH_BEARER);
+
+        try {
+            builder.getAuthHeader(pluginStepContext, options);
+            fail("Expected StepException for missing token");
+        } catch (StepException se) {
+            assertEquals(StepFailureReason.ConfigurationFailure, se.getFailureReason());
+        }
+    }
+
+    @Test
+    public void getAuthHeader_basicAuth_returnsBasicHeader() throws StepException {
+        // BASIC is unaffected by the new authentication type.
+        Map<String, Object> options = new HashMap<>();
+        options.put("authentication", AUTH_BASIC);
+        options.put("username", "user");
+        options.put("password", "my-token");
+
+        assertEquals("Basic " + com.dtolabs.rundeck.core.utils.Base64.encode("user:my-token"),
+                builder.getAuthHeader(pluginStepContext, options));
+    }
+
+    @Test
+    public void getAuthHeader_noAuth_returnsNull() throws StepException {
+        // A password on its own does not produce a header; the authentication
+        // type has to select "Bearer" explicitly.
+        Map<String, Object> options = new HashMap<>();
+        options.put("password", "my-token");
+
+        assertNull(builder.getAuthHeader(pluginStepContext, options));
     }
 
 }
