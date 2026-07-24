@@ -282,6 +282,35 @@ public class HttpBuilderTest {
     }
 
     @Test
+    public void getAuthHeader_bearerAuthWithEmptyPassword_throwsConfigurationFailure() {
+        // The option is present but blank, i.e. the field was left empty in the UI.
+        Map<String, Object> options = new HashMap<>();
+        options.put("authentication", AUTH_BEARER);
+        options.put("password", "");
+
+        try {
+            builder.getAuthHeader(pluginStepContext, options);
+            fail("Expected StepException for empty token");
+        } catch (StepException se) {
+            assertEquals(StepFailureReason.ConfigurationFailure, se.getFailureReason());
+        }
+    }
+
+    @Test
+    public void getAuthHeader_bearerAuthWithBlankPassword_throwsConfigurationFailure() {
+        Map<String, Object> options = new HashMap<>();
+        options.put("authentication", AUTH_BEARER);
+        options.put("password", "   ");
+
+        try {
+            builder.getAuthHeader(pluginStepContext, options);
+            fail("Expected StepException for blank token");
+        } catch (StepException se) {
+            assertEquals(StepFailureReason.ConfigurationFailure, se.getFailureReason());
+        }
+    }
+
+    @Test
     public void getAuthHeader_basicAuth_returnsBasicHeader() throws StepException {
         // BASIC is unaffected by the new authentication type.
         Map<String, Object> options = new HashMap<>();

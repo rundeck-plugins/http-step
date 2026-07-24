@@ -368,7 +368,9 @@ public class HttpBuilder {
             authHeader = "Basic " + com.dtolabs.rundeck.core.utils.Base64.encode(authHeader);
         } else if (authentication.equals(AUTH_BEARER)) {
             // The password holds the token to send verbatim as a Bearer credential.
-            if(password == null) {
+            // A blank token would produce a meaningless "Bearer " header, so it is
+            // treated the same as a missing one.
+            if(password == null || password.trim().isEmpty()) {
                 throw new StepException("Token not provided for Bearer Authentication",
                         StepFailureReason.ConfigurationFailure);
             }
