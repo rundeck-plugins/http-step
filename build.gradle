@@ -104,7 +104,7 @@ configurations.all {
 
         // Force commons-codec, pulled in transitively via httpclient 4.5.14, to a
         // version that fixes SNYK-JAVA-COMMONSCODEC-561518 (CWE-200 info exposure)
-        force 'commons-codec:commons-codec:1.14'
+        force 'commons-codec:commons-codec:1.22.0'
     }
 }
 
