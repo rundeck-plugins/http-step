@@ -1,5 +1,5 @@
 plugins {
-    id 'pl.allegro.tech.build.axion-release' version '1.21.2'
+    id 'pl.allegro.tech.build.axion-release' version '1.21.3'
     id 'java'
 }
 
@@ -63,8 +63,8 @@ configurations{
 }
 
 dependencies {
-    compileOnly 'org.rundeck:rundeck-core:6.1.0-SNAPSHOT'
-    testImplementation 'org.rundeck:rundeck-core:6.1.0-SNAPSHOT'
+    compileOnly 'org.rundeck:rundeck-core:6.1.0-20260803'
+    testImplementation 'org.rundeck:rundeck-core:6.1.0-20260803'
     
     // Add secure commons-lang3 to provide alternative to vulnerable commons-lang 2.6
     // Version 3.20.0 fixes CVE-2025-48924 (StackOverflowError in ClassUtils)
@@ -88,9 +88,9 @@ dependencies {
     testImplementation group: 'junit', name: 'junit', version:'4.13.2'
 
     testImplementation (
-            'org.mockito:mockito-all:1.9.5',
+            'org.mockito:mockito-all:1.10.19',
             'org.powermock:powermock-module-junit4:2.0.9',
-            'org.powermock:powermock-api-mockito:1.5'
+            'org.powermock:powermock-api-mockito:1.7.4'
     )
 }
 
@@ -104,7 +104,7 @@ configurations.all {
 
         // Force commons-codec, pulled in transitively via httpclient 4.5.14, to a
         // version that fixes SNYK-JAVA-COMMONSCODEC-561518 (CWE-200 info exposure)
-        force 'commons-codec:commons-codec:1.22.0'
+        force 'commons-codec:commons-codec:1.22.1'
     }
 }
 
