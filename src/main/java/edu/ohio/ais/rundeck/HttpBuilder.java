@@ -3,7 +3,6 @@ package edu.ohio.ais.rundeck;
 import com.dtolabs.rundeck.core.execution.workflow.steps.FailureReason;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepException;
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepFailureReason;
-import com.dtolabs.rundeck.core.storage.ResourceMeta;
 import com.dtolabs.rundeck.core.utils.IPropertyLookup;
 import com.dtolabs.rundeck.plugins.PluginLogger;
 import com.dtolabs.rundeck.plugins.step.PluginStepContext;
@@ -30,7 +29,6 @@ import org.dom4j.io.OutputFormat;
 import org.dom4j.io.XMLWriter;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 import java.io.*;
@@ -44,6 +42,7 @@ import java.util.Map;
 public class HttpBuilder {
     public static final String AUTH_NONE = "None";
     public static final String AUTH_BASIC = "Basic";
+    public static final String AUTH_BEARER = "Bearer";
     public static final String AUTH_OAUTH2 = "OAuth 2.0";
     public static final String XML_FORMAT = "xml";
     public static final String JSON_FORMAT = "json";
@@ -367,6 +366,16 @@ public class HttpBuilder {
 
             //As per RFC2617 the Basic Authentication standard has to send the credentials Base64 encoded.
             authHeader = "Basic " + com.dtolabs.rundeck.core.utils.Base64.encode(authHeader);
+        } else if (authentication.equals(AUTH_BEARER)) {
+            // The password holds the token to send verbatim as a Bearer credential.
+            // A blank token would produce a meaningless "Bearer " header, so it is
+            // treated the same as a missing one.
+            if(password == null || password.trim().isEmpty()) {
+                throw new StepException("Token not provided for Bearer Authentication",
+                        StepFailureReason.ConfigurationFailure);
+            }
+
+            authHeader = "Bearer " + password;
         } else if (authentication.equals(AUTH_OAUTH2)) {
             // Get an OAuth token and setup the auth header for OAuth
             String tokenEndpoint = getStringOption(options, "oauthTokenEndpoint");
