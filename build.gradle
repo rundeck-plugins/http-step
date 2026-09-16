@@ -4,8 +4,8 @@ plugins {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
     withSourcesJar()
     withJavadocJar()
 }
@@ -63,8 +63,8 @@ configurations{
 }
 
 dependencies {
-    compileOnly 'org.rundeck:rundeck-core:6.2.0-20260908'
-    testImplementation 'org.rundeck:rundeck-core:6.2.0-20260908'
+    compileOnly 'org.rundeck:rundeck-core:7.0.0-SNAPSHOT'
+    testImplementation 'org.rundeck:rundeck-core:7.0.0-SNAPSHOT'
     
     // Add secure commons-lang3 to provide alternative to vulnerable commons-lang 2.6
     // Version 3.20.0 fixes CVE-2025-48924 (StackOverflowError in ClassUtils)
